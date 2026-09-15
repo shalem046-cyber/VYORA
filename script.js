@@ -1,15 +1,12 @@
-/* =========================================================
-   VYORA — FRONTEND PROTOTYPE ENGINE
-   Real APIs are NOT connected.
-   All intelligence below is prototype/demo behavior.
-========================================================= */
-
 "use strict";
 
-/* ================= BASIC HELPERS ================= */
+/* ================= HELPERS ================= */
 
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+const $ = (selector) =>
+  document.querySelector(selector);
+
+const $$ = (selector) =>
+  [...document.querySelectorAll(selector)];
 
 function escapeHTML(text) {
   const div = document.createElement("div");
@@ -22,140 +19,142 @@ function formatCurrency(value) {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
-  }).format(value).replace("₹", "₹");
+  }).format(value);
 }
 
-/* ================= SCROLL ================= */
-
-function scrollToPlanner() {
-  const planner = document.getElementById("planner");
-
-  if (planner) {
-    planner.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
-}
-
-function scrollToExplore() {
-  const explore = document.getElementById("explore");
-
-  if (explore) {
-    explore.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
-}
 
 /* ================= NAVBAR ================= */
 
-function updateNavbar() {
-  const navbar = document.getElementById("navbar");
+function scrollToPlanner() {
+  document
+    .getElementById("planner")
+    ?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+}
+
+function scrollToExplore() {
+  document
+    .getElementById("explore")
+    ?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+}
+
+window.addEventListener("scroll", () => {
+  const navbar = $("#navbar");
 
   if (!navbar) return;
 
-  navbar.classList.toggle("scrolled", window.scrollY > 25);
-}
+  navbar.classList.toggle(
+    "scrolled",
+    window.scrollY > 25
+  );
+});
 
-window.addEventListener("scroll", updateNavbar);
-updateNavbar();
 
 /* ================= MOBILE MENU ================= */
 
 function toggleMenu() {
-  const menu = document.getElementById("mobileMenu");
-
-  if (!menu) return;
-
-  menu.classList.toggle("open");
+  $("#mobileMenu")?.classList.toggle("open");
 }
 
 function closeMobileMenu() {
-  const menu = document.getElementById("mobileMenu");
-
-  if (menu) {
-    menu.classList.remove("open");
-  }
+  $("#mobileMenu")?.classList.remove("open");
 }
 
-/* ================= ACTIVE NAVIGATION ================= */
 
-const navSections = [
-  { id: "explore" },
-  { id: "planner" },
-  { id: "hotels" },
-  { id: "experiences" }
-];
+/* ================= NAV ACTIVE STATE ================= */
 
-function updateActiveNavigation() {
-  const scrollPosition = window.scrollY + 180;
+function updateActiveNav() {
 
-  let currentSection = "explore";
+  const sections = [
+    "explore",
+    "planner",
+    "hotels",
+    "experiences"
+  ];
 
-  navSections.forEach(section => {
-    const element = document.getElementById(section.id);
+  const position =
+    window.scrollY + 180;
 
-    if (element && scrollPosition >= element.offsetTop) {
-      currentSection = section.id;
+  let active = "explore";
+
+  sections.forEach(id => {
+
+    const section = document.getElementById(id);
+
+    if (
+      section &&
+      position >= section.offsetTop
+    ) {
+      active = id;
     }
+
   });
 
   $$(".nav-link").forEach(link => {
+
     link.classList.toggle(
       "active",
-      link.getAttribute("href") === `#${currentSection}`
+      link.getAttribute("href") === `#${active}`
     );
+
   });
+
 }
 
-window.addEventListener("scroll", updateActiveNavigation);
-updateActiveNavigation();
+window.addEventListener(
+  "scroll",
+  updateActiveNav
+);
+
 
 /* ================= INTERESTS ================= */
 
 function toggleInterest(button) {
-  if (!button) return;
-
-  button.classList.toggle("active");
+  button?.classList.toggle("active");
 }
 
-/* ================= DESTINATION PREFILL ================= */
+
+/* ================= DESTINATION ================= */
 
 function prefillDestination(destination) {
 
-  const searchInput = document.getElementById("destinationInput");
-  const plannerInput = document.getElementById("plannerDestination");
+  const top =
+    $("#destinationInput");
 
-  if (searchInput) {
-    searchInput.value = destination;
+  const planner =
+    $("#plannerDestination");
+
+  if (top) {
+    top.value = destination;
   }
 
-  if (plannerInput) {
-    plannerInput.value = destination;
+  if (planner) {
+    planner.value = destination;
   }
 
   scrollToPlanner();
 
   showToast(
     "Destination selected",
-    `${destination} has been added to your VYORA journey.`
+    `${destination} has been added to your journey.`
   );
 }
-
-/* ================= TOP SEARCH ================= */
 
 function generateTrip() {
 
   const destination =
-    document.getElementById("destinationInput")?.value.trim();
+    $("#destinationInput")?.value.trim();
 
   const days =
-    document.getElementById("daysInput")?.value || "3";
+    $("#daysInput")?.value || "3";
 
   const budget =
-    document.getElementById("budgetInput")?.value || "10000";
+    $("#budgetInput")?.value || "10000";
 
   if (!destination) {
 
@@ -164,23 +163,30 @@ function generateTrip() {
       "Tell VYORA where you want to go first."
     );
 
-    document.getElementById("destinationInput")?.focus();
+    $("#destinationInput")?.focus();
 
     return;
   }
 
-  document.getElementById("plannerDestination").value = destination;
-  document.getElementById("plannerDays").value = days;
-  document.getElementById("plannerBudget").value = budget;
+  $("#plannerDestination").value =
+    destination;
+
+  $("#plannerDays").value =
+    days;
+
+  $("#plannerBudget").value =
+    budget;
 
   scrollToPlanner();
 
-  setTimeout(() => {
-    generatePlanner();
-  }, 550);
+  setTimeout(
+    generatePlanner,
+    500
+  );
 }
 
-/* ================= AI PLANNER ================= */
+
+/* ================= JOURNEY STATE ================= */
 
 let currentJourney = {
   destination: "",
@@ -189,28 +195,35 @@ let currentJourney = {
   interests: []
 };
 
+
+/* ================= PLANNER ================= */
+
 function getSelectedInterests() {
 
-  return $$(".interest.active").map(
-    button => button.dataset.interest
-  );
+  return $$(".interest.active")
+    .map(button => button.dataset.interest);
 
 }
 
 function generatePlanner() {
 
   const destination =
-    document.getElementById("plannerDestination")?.value.trim();
+    $("#plannerDestination")?.value.trim();
 
   const days =
-    Number(document.getElementById("plannerDays")?.value || 3);
+    Number($("#plannerDays")?.value || 3);
 
   const budget =
-    Number(document.getElementById("plannerBudget")?.value || 10000);
+    Number($("#plannerBudget")?.value || 10000);
 
-  const interests = getSelectedInterests();
+  const interests =
+    getSelectedInterests();
 
-  const result = document.getElementById("plannerResult");
+  const result =
+    $("#plannerResult");
+
+  const button =
+    $("#generateBtn");
 
   if (!destination) {
 
@@ -219,7 +232,7 @@ function generatePlanner() {
       "Tell VYORA where you want to go first."
     );
 
-    document.getElementById("plannerDestination")?.focus();
+    $("#plannerDestination")?.focus();
 
     return;
   }
@@ -231,28 +244,35 @@ function generatePlanner() {
     interests
   };
 
-  const generateButton = document.querySelector(".generate-btn");
 
-  if (generateButton) {
-    generateButton.classList.add("loading");
+  button?.classList.add("loading");
 
-    generateButton.innerHTML = `
+  if (button) {
+
+    button.innerHTML = `
       <span>✦</span>
       <span>VYORA is thinking...</span>
       <span>•</span>
     `;
+
   }
+
 
   if (result) {
 
-    result.className = "planner-result visible";
+    result.className =
+      "planner-result visible";
 
     result.innerHTML = `
-      <div class="ai-thinking">
+      <div class="thinking">
         <span>✦</span>
+
         <div>
-          <strong>Understanding your preferences...</strong>
-          <div class="thinking-dots">
+          <strong>
+            Understanding your preferences...
+          </strong>
+
+          <div class="dots">
             <span></span>
             <span></span>
             <span></span>
@@ -263,7 +283,8 @@ function generatePlanner() {
 
   }
 
-  const processingSteps = [
+
+  const steps = [
     "Finding the best experiences...",
     "Optimizing your route...",
     "Balancing your budget...",
@@ -272,64 +293,80 @@ function generatePlanner() {
 
   let step = 0;
 
-  const processingInterval = setInterval(() => {
 
-    if (!result) return;
+  const interval =
+    setInterval(() => {
 
-    if (step < processingSteps.length) {
+      if (!result) return;
 
-      result.innerHTML = `
-        <div class="ai-thinking">
-          <span>✦</span>
-          <div>
-            <strong>${processingSteps[step]}</strong>
-            <div class="thinking-dots">
-              <span></span>
-              <span></span>
-              <span></span>
+      if (step < steps.length) {
+
+        result.innerHTML = `
+          <div class="thinking">
+            <span>✦</span>
+
+            <div>
+              <strong>
+                ${steps[step]}
+              </strong>
+
+              <div class="dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
 
-      step++;
+        step++;
 
-    }
+      }
 
-  }, 650);
+    }, 600);
+
 
   setTimeout(() => {
 
-    clearInterval(processingInterval);
+    clearInterval(interval);
+
+    const interestsText =
+      interests.length
+        ? interests.slice(0,3).join(" · ")
+        : "balanced exploration";
+
 
     if (result) {
 
-      const interestText =
-        interests.length
-          ? interests.slice(0, 3).join(" · ")
-          : "balanced exploration";
-
       result.innerHTML = `
-        <strong>✦ Your ${escapeHTML(destination)} journey is ready.</strong>
+        <strong>
+          ✦ Your ${escapeHTML(destination)}
+          journey is ready.
+        </strong>
+
         <br><br>
-        <span>
-          ${days} days · ${formatCurrency(budget)} budget
-          · ${escapeHTML(interestText)}
-        </span>
+
+        ${days} days ·
+        ${formatCurrency(budget)} budget ·
+        ${escapeHTML(interestsText)}
+
         <br><br>
+
         <small>
-          Prototype intelligence generated this journey from your selected preferences.
-          Real AI integration can replace this layer later.
+          Prototype intelligence generated this journey
+          from your selected preferences.
+          Real AI API integration is not connected.
         </small>
       `;
 
     }
 
-    if (generateButton) {
 
-      generateButton.classList.remove("loading");
+    if (button) {
 
-      generateButton.innerHTML = `
+      button.classList.remove("loading");
+
+      button.innerHTML = `
         <span>✦</span>
         <span>Regenerate my journey</span>
         <span>→</span>
@@ -337,46 +374,55 @@ function generatePlanner() {
 
     }
 
-    renderItinerary(currentJourney);
-    updateBudget(currentJourney);
-    updateJourneyHeader(currentJourney);
 
-    document
-      .getElementById("itinerary")
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+    renderItinerary();
+    updateJourneyHeader();
+    updateBudget();
+
+
+    $("#itinerary")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
 
     showToast(
       "Journey ready",
-      `${destination} has been intelligently arranged for you.`
+      `${destination} has been arranged by VYORA.`
     );
 
-  }, 3200);
+  }, 3000);
+
 }
 
-/* ================= ITINERARY ENGINE ================= */
+
+/* ================= ITINERARY ================= */
 
 const activityLibrary = {
+
   morning: [
     {
-      place: "Signature viewpoint",
-      description: "Start the day with a scenic introduction to the destination.",
+      name: "Scenic viewpoint",
+      description:
+        "Start with a panoramic introduction to the destination.",
       cost: 450,
       time: "09:00",
       travel: "20 min"
     },
+
     {
-      place: "Local breakfast",
-      description: "A relaxed breakfast featuring regional flavours.",
+      name: "Local breakfast",
+      description:
+        "Begin the morning with regional flavours and local atmosphere.",
       cost: 280,
       time: "08:30",
       travel: "10 min"
     },
+
     {
-      place: "Heritage walk",
-      description: "Explore architecture, stories and the destination's older streets.",
+      name: "Heritage walk",
+      description:
+        "Explore older streets, architecture and local stories.",
       cost: 350,
       time: "09:30",
       travel: "15 min"
@@ -385,22 +431,27 @@ const activityLibrary = {
 
   afternoon: [
     {
-      place: "Local experience",
-      description: "A curated activity built around your selected interests.",
+      name: "Curated local experience",
+      description:
+        "A destination activity matched to your interests.",
       cost: 900,
       time: "13:00",
       travel: "25 min"
     },
+
     {
-      place: "Hidden gem",
-      description: "A quieter stop away from the standard tourist route.",
+      name: "Hidden gem",
+      description:
+        "A quieter experience beyond the standard tourist route.",
       cost: 600,
       time: "14:00",
       travel: "30 min"
     },
+
     {
-      place: "Regional food trail",
-      description: "Taste a selection of local dishes and street favourites.",
+      name: "Regional food trail",
+      description:
+        "Taste local favourites and signature regional dishes.",
       cost: 750,
       time: "13:30",
       travel: "15 min"
@@ -409,77 +460,46 @@ const activityLibrary = {
 
   evening: [
     {
-      place: "Golden-hour escape",
-      description: "Slow down and experience the destination around sunset.",
+      name: "Golden-hour escape",
+      description:
+        "Slow down and experience the destination at sunset.",
       cost: 500,
       time: "17:30",
       travel: "20 min"
     },
+
     {
-      place: "Local market",
-      description: "Browse local products, crafts and evening street life.",
+      name: "Local market",
+      description:
+        "Explore crafts, products and evening street life.",
       cost: 400,
       time: "18:00",
       travel: "15 min"
     },
+
     {
-      place: "Signature evening",
-      description: "Finish the day with a memorable destination experience.",
+      name: "Signature evening",
+      description:
+        "Finish the day with a memorable destination experience.",
       cost: 700,
       time: "19:30",
       travel: "25 min"
     }
   ]
+
 };
 
-function pickActivity(category, index) {
+function getActivity(type, index) {
 
-  const options = activityLibrary[category];
+  const list =
+    activityLibrary[type];
 
-  if (!options) {
-    return activityLibrary.morning[0];
-  }
-
-  return options[index % options.length];
+  return list[
+    index % list.length
+  ];
 }
 
-function renderItinerary(journey) {
-
-  const timeline = document.getElementById("itineraryTimeline");
-
-  if (!timeline) return;
-
-  const destination = journey.destination;
-  const days = journey.days;
-
-  let html = "";
-
-  for (let day = 1; day <= days; day++) {
-
-    const morning = pickActivity("morning", day - 1);
-    const afternoon = pickActivity("afternoon", day - 1);
-    const evening = pickActivity("evening", day - 1);
-
-    html += `
-      <article class="day-card" style="animation-delay:${(day - 1) * 90}ms">
-
-        <div class="day-header">
-          <strong>DAY ${String(day).padStart(2, "0")}</strong>
-          <span>${escapeHTML(destination)}</span>
-        </div>
-
-        ${createActivityHTML("Morning", morning)}
-        ${createActivityHTML("Afternoon", afternoon)}
-        ${createActivityHTML("Evening", evening)}
-
-      </article>
-    `;
-  }
-
-  timeline.innerHTML = html;
-}
-
-function createActivityHTML(period, activity) {
+function createActivity(period, activity) {
 
   return `
     <div class="activity">
@@ -490,253 +510,316 @@ function createActivityHTML(period, activity) {
       </div>
 
       <div class="activity-info">
-        <strong>${escapeHTML(activity.place)}</strong>
-        <p>${escapeHTML(activity.description)}</p>
+        <strong>
+          ${escapeHTML(activity.name)}
+        </strong>
+
+        <p>
+          ${escapeHTML(activity.description)}
+        </p>
       </div>
 
       <div class="activity-meta">
-        <strong>₹${activity.cost.toLocaleString("en-IN")}</strong>
-        <span>${activity.travel} travel</span>
+        <strong>
+          ₹${activity.cost.toLocaleString("en-IN")}
+        </strong>
+
+        <span>
+          ${activity.travel} travel
+        </span>
       </div>
 
     </div>
   `;
 }
 
+function renderItinerary() {
+
+  const timeline =
+    $("#itineraryTimeline");
+
+  if (!timeline) return;
+
+  let html = "";
+
+  for (
+    let day = 1;
+    day <= currentJourney.days;
+    day++
+  ) {
+
+    const morning =
+      getActivity("morning", day - 1);
+
+    const afternoon =
+      getActivity("afternoon", day - 1);
+
+    const evening =
+      getActivity("evening", day - 1);
+
+
+    html += `
+      <article class="day-card">
+
+        <div class="day-header">
+          <strong>
+            DAY ${String(day).padStart(2,"0")}
+          </strong>
+
+          <span>
+            ${escapeHTML(currentJourney.destination)}
+          </span>
+        </div>
+
+        ${createActivity("Morning", morning)}
+
+        ${createActivity("Afternoon", afternoon)}
+
+        ${createActivity("Evening", evening)}
+
+      </article>
+    `;
+
+  }
+
+  timeline.innerHTML = html;
+}
+
+
 /* ================= JOURNEY HEADER ================= */
 
-function updateJourneyHeader(journey) {
+function updateJourneyHeader() {
 
-  const title = document.getElementById("journeyTitle");
-  const meta = document.getElementById("journeyMeta");
-  const score = document.getElementById("journeyScore");
+  const title =
+    $("#journeyTitle");
+
+  const meta =
+    $("#journeyMeta");
+
+  const score =
+    $("#journeyScore");
+
 
   if (title) {
-    title.textContent = `${journey.destination}, your way.`;
+
+    title.textContent =
+      `${currentJourney.destination}, your way.`;
+
   }
+
 
   if (meta) {
 
     const interests =
-      journey.interests.length
-        ? journey.interests.slice(0, 3).join(" · ")
+      currentJourney.interests.length
+        ? currentJourney.interests.slice(0,3).join(" · ")
         : "Balanced exploration";
 
     meta.textContent =
-      `${journey.days} days · ${formatCurrency(journey.budget)} budget · ${interests}`;
+      `${currentJourney.days} days · ` +
+      `${formatCurrency(currentJourney.budget)} budget · ` +
+      interests;
 
   }
+
 
   if (score) {
 
-    const base = 87;
-    const interestBonus =
-      Math.min(journey.interests.length * 2, 10);
+    const scoreValue =
+      Math.min(
+        87 + currentJourney.interests.length * 2,
+        97
+      );
 
     score.textContent =
-      `${Math.min(base + interestBonus, 97)}%`;
+      `${scoreValue}%`;
 
   }
+
 }
+
 
 /* ================= BUDGET ================= */
 
-function updateBudget(journey) {
+function updateBudget() {
 
-  const days = journey.days;
-  const selectedBudget = journey.budget;
+  const budget =
+    currentJourney.budget;
 
-  const hotel = Math.round(
-    selectedBudget * (days >= 7 ? .36 : .34)
-  );
+  const hotel =
+    Math.round(budget * .34);
 
-  const food = Math.round(
-    selectedBudget * .20
-  );
+  const food =
+    Math.round(budget * .20);
 
-  const transport = Math.round(
-    selectedBudget * .18
-  );
+  const transport =
+    Math.round(budget * .18);
 
-  const activities = Math.round(
-    selectedBudget * .17
-  );
+  const activities =
+    Math.round(budget * .17);
 
-  const total = hotel + food + transport + activities;
+  const total =
+    hotel +
+    food +
+    transport +
+    activities;
 
-  const budgetTotal =
-    document.getElementById("budgetTotal");
 
-  const budgetHotel =
-    document.getElementById("budgetHotel");
+  $("#budgetTotal").textContent =
+    formatCurrency(total);
 
-  const budgetFood =
-    document.getElementById("budgetFood");
+  $("#budgetHotel").textContent =
+    formatCurrency(hotel);
 
-  const budgetTransport =
-    document.getElementById("budgetTransport");
+  $("#budgetFood").textContent =
+    formatCurrency(food);
 
-  const budgetActivities =
-    document.getElementById("budgetActivities");
+  $("#budgetTransport").textContent =
+    formatCurrency(transport);
 
-  if (budgetTotal) {
-    budgetTotal.textContent =
-      formatCurrency(total);
-  }
+  $("#budgetActivities").textContent =
+    formatCurrency(activities);
 
-  if (budgetHotel) {
-    budgetHotel.textContent =
-      formatCurrency(hotel);
-  }
 
-  if (budgetFood) {
-    budgetFood.textContent =
-      formatCurrency(food);
-  }
-
-  if (budgetTransport) {
-    budgetTransport.textContent =
-      formatCurrency(transport);
-  }
-
-  if (budgetActivities) {
-    budgetActivities.textContent =
-      formatCurrency(activities);
-  }
-
-  animateProgress(
+  updateProgress(
     "hotelProgress",
     hotel / total * 100
   );
 
-  animateProgress(
+  updateProgress(
     "foodProgress",
     food / total * 100
   );
 
-  animateProgress(
+  updateProgress(
     "transportProgress",
     transport / total * 100
   );
 
-  animateProgress(
+  updateProgress(
     "activitiesProgress",
     activities / total * 100
   );
 
-  const percent =
-    Math.min(Math.round((total / selectedBudget) * 100), 100);
 
-  const percentElement =
-    document.getElementById("budgetPercent");
+  const percentage =
+    Math.min(
+      Math.round(total / budget * 100),
+      100
+    );
 
-  if (percentElement) {
-    percentElement.textContent =
-      `${percent}%`;
-  }
 
-  const ring =
-    document.getElementById("budgetRing");
+  $("#budgetPercent").textContent =
+    `${percentage}%`;
 
-  if (ring) {
 
-    ring.style.background =
-      `radial-gradient(circle at center, white 58%, transparent 59%),
-       conic-gradient(var(--accent) ${percent * 3.6}deg, #e6e8df ${percent * 3.6}deg)`;
+  const degrees =
+    percentage * 3.6;
 
-  }
+  $("#budgetRing").style.background =
+    `
+      radial-gradient(
+        circle,
+        white 57%,
+        transparent 58%
+      ),
+      conic-gradient(
+        var(--accent) ${degrees}deg,
+        #e6e8df ${degrees}deg
+      )
+    `;
 
-  const budgetNote =
-    document.getElementById("budgetNote");
 
-  if (budgetNote) {
+  $("#budgetNote").textContent =
+    total <= budget
+      ? `VYORA estimates this journey can stay within your ${formatCurrency(budget)} budget.`
+      : `This journey may exceed your budget. Reduce accommodation or activities.`;
 
-    if (total <= selectedBudget) {
-
-      budgetNote.textContent =
-        `VYORA estimates this journey can stay within your selected ${formatCurrency(selectedBudget)} budget.`;
-
-    } else {
-
-      budgetNote.textContent =
-        `This route may exceed your selected budget. Reduce stays or activities to optimize it.`;
-
-    }
-
-  }
 }
 
-function animateProgress(id, value) {
+function updateProgress(id, value) {
 
-  const element = document.getElementById(id);
+  const element =
+    document.getElementById(id);
 
   if (!element) return;
 
   setTimeout(() => {
-    element.style.width = `${value}%`;
+
+    element.style.width =
+      `${value}%`;
+
   }, 100);
 
 }
 
-/* ================= SAVE / SHARE ================= */
+
+/* ================= SAVE ================= */
 
 function saveTrip() {
 
   if (!currentJourney.destination) {
 
     showToast(
-      "Nothing to save yet",
-      "Generate your journey first."
-    );
-
-    return;
-  }
-
-  localStorage.setItem(
-    "vyoraSavedTrip",
-    JSON.stringify(currentJourney)
-  );
-
-  showToast(
-    "Trip saved",
-    `${currentJourney.destination} is saved in this browser.`
-  );
-}
-
-async function shareTrip() {
-
-  if (!currentJourney.destination) {
-
-    showToast(
-      "Nothing to share yet",
+      "Nothing to save",
       "Generate a journey first."
     );
 
     return;
   }
 
-  const shareData = {
-    title: "My VYORA Journey",
-    text:
-      `I'm planning a ${currentJourney.days}-day trip to ${currentJourney.destination} with VYORA.`,
-    url: window.location.href
-  };
+
+  localStorage.setItem(
+    "vyoraSavedTrip",
+    JSON.stringify(currentJourney)
+  );
+
+
+  showToast(
+    "Trip saved",
+    "Your VYORA journey is saved in this browser."
+  );
+
+}
+
+
+/* ================= SHARE ================= */
+
+async function shareTrip() {
+
+  if (!currentJourney.destination) {
+
+    showToast(
+      "Nothing to share",
+      "Generate a journey first."
+    );
+
+    return;
+  }
+
+
+  const text =
+    `I'm planning a ${currentJourney.days}-day trip to ${currentJourney.destination} with VYORA.`;
 
   try {
 
     if (navigator.share) {
 
-      await navigator.share(shareData);
+      await navigator.share({
+        title: "My VYORA Journey",
+        text,
+        url: window.location.href
+      });
 
     } else {
 
       await navigator.clipboard.writeText(
-        `${shareData.text} ${shareData.url}`
+        `${text} ${window.location.href}`
       );
 
       showToast(
-        "Journey link copied",
-        "Share text has been copied to your clipboard."
+        "Copied",
+        "Journey details copied to your clipboard."
       );
 
     }
@@ -746,16 +829,18 @@ async function shareTrip() {
     if (error.name !== "AbortError") {
 
       showToast(
-        "Sharing unavailable",
-        "Your browser does not support this sharing method."
+        "Share unavailable",
+        "Your browser does not support this option."
       );
 
     }
 
   }
+
 }
 
-/* ================= HOTEL ACTIONS ================= */
+
+/* ================= HOTELS ================= */
 
 function toggleFavorite(button) {
 
@@ -768,204 +853,119 @@ function toggleFavorite(button) {
 
 }
 
-function showHotelDemo(hotelName) {
+function showHotelDemo(name) {
 
   openModal(
-    hotelName,
-    "This is a prototype hotel experience. Real availability, room selection, booking and live pricing will require a hotel/booking API."
+    name,
+    "This is prototype hotel data. Real availability, room selection, booking and live pricing will require secure API integration."
   );
 
 }
 
+
 /* ================= EXPERIENCES ================= */
 
-const experienceData = {
+const experiences = {
 
   "Local food": {
     title: "Follow the flavour.",
-    text: "VYORA can prioritize local dishes, regional cafés, street food and food trails instead of generic restaurant lists."
+    text:
+      "VYORA can prioritize local dishes, regional cafés, street food and food trails."
   },
 
   "Culture": {
     title: "See the culture.",
-    text: "VYORA can surface festivals, crafts, traditions, museums and local stories based on a traveller's interests."
+    text:
+      "VYORA can surface traditions, museums, crafts, festivals and local stories."
   },
 
   "Markets": {
     title: "Walk the market.",
-    text: "Discover neighbourhood markets, crafts, local shopping streets and evening food culture."
+    text:
+      "Discover neighbourhood markets, local products, crafts and evening street life."
   },
 
   "Hidden places": {
     title: "Go beyond the obvious.",
-    text: "VYORA can recommend less crowded places and alternative experiences that better match your travel style."
+    text:
+      "VYORA can surface quieter places and alternative experiences."
   },
 
   "Adventure": {
     title: "Make it memorable.",
-    text: "From outdoor activities to curated experiences, VYORA can prioritize adventure based on your preferred pace."
+    text:
+      "Adventure recommendations can be tailored to pace, interests and destination."
   }
 
 };
 
 function showExperience(type) {
 
-  const data = experienceData[type];
+  const data =
+    experiences[type];
 
   if (!data) return;
 
-  const title =
-    document.getElementById("experienceTitle");
+  $("#experienceTitle").textContent =
+    data.title;
 
-  const text =
-    document.getElementById("experienceText");
-
-  if (title) {
-    title.textContent = data.title;
-  }
-
-  if (text) {
-    text.textContent = data.text;
-  }
+  $("#experienceText").textContent =
+    data.text;
 
 }
+
 
 /* ================= MAP ================= */
 
 function mapPin(type) {
 
-  const descriptions = {
-
-    Hotel:
-      "Hotel intelligence layer selected.",
-
-    Attraction:
-      "Attraction discovery layer selected.",
-
-    Experience:
-      "Local experience layer selected."
-
-  };
-
   showToast(
     `${type} marker`,
-    `${descriptions[type]} This demo map is ready for future live map integration.`
+    `Prototype ${type.toLowerCase()} location selected.`
   );
 
 }
 
-/* ================= ASSISTANT ================= */
+
+/* ================= CHAT ================= */
 
 function openAssistant() {
 
-  const chatWindow =
-    document.getElementById("chatWindow");
-
-  if (!chatWindow) return;
-
-  chatWindow.classList.add("open");
+  $("#chatWindow")?.classList.add("open");
 
   setTimeout(() => {
-    document.getElementById("chatInput")?.focus();
+    $("#chatInput")?.focus();
   }, 100);
 
 }
 
 function closeAssistant() {
 
-  const chatWindow =
-    document.getElementById("chatWindow");
-
-  if (!chatWindow) return;
-
-  chatWindow.classList.remove("open");
+  $("#chatWindow")?.classList.remove("open");
 
 }
 
 function sendSuggestedMessage(message) {
 
   const input =
-    document.getElementById("chatInput");
+    $("#chatInput");
 
   if (!input) return;
 
-  input.value = message;
+  input.value =
+    message;
 
   sendMessage();
 
 }
 
-function sendMessage() {
-
-  const input =
-    document.getElementById("chatInput");
+function addMessage(content, type) {
 
   const messages =
-    document.getElementById("chatMessages");
-
-  if (!input || !messages) return;
-
-  const message =
-    input.value.trim();
-
-  if (!message) return;
-
-  addChatMessage(
-    escapeHTML(message),
-    "user"
-  );
-
-  input.value = "";
-
-  const typingId =
-    `typing-${Date.now()}`;
-
-  messages.insertAdjacentHTML(
-    "beforeend",
-    `
-      <div class="bot-message" id="${typingId}">
-        <span class="message-avatar">✦</span>
-        <div class="typing-message">
-          <div class="thinking-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
-    `
-  );
-
-  messages.scrollTop =
-    messages.scrollHeight;
-
-  setTimeout(() => {
-
-    const typing =
-      document.getElementById(typingId);
-
-    if (typing) {
-      typing.remove();
-    }
-
-    const response =
-      getAssistantResponse(message);
-
-    addChatMessage(
-      response,
-      "bot"
-    );
-
-  }, 850);
-
-}
-
-function addChatMessage(content, type) {
-
-  const messages =
-    document.getElementById("chatMessages");
+    $("#chatMessages");
 
   if (!messages) return;
+
 
   if (type === "user") {
 
@@ -985,16 +985,19 @@ function addChatMessage(content, type) {
       `
         <div class="bot-message">
           <span class="message-avatar">✦</span>
-          <div>${content}</div>
+
+          <div>
+            ${content}
+          </div>
         </div>
       `
     );
 
   }
 
+
   messages.scrollTop =
     messages.scrollHeight;
-
 }
 
 function getAssistantResponse(message) {
@@ -1002,36 +1005,49 @@ function getAssistantResponse(message) {
   const text =
     message.toLowerCase();
 
+
   if (
     text.includes("goa") ||
     text.includes("beach")
   ) {
 
     return `
-      Goa is a strong fit for beaches, food and nightlife.
-      Try a balanced 3-day route with a quieter coastal morning,
-      a local food experience and a sunset-focused evening.
+      Goa is a strong match for beaches,
+      food and nightlife. A balanced 3-day route
+      could combine a coastal morning, local food
+      and a sunset-focused evening.
+
       <br><br>
-      <small>Prototype response · Real AI integration not connected.</small>
+
+      <small>
+        Prototype response · Real AI API not connected.
+      </small>
     `;
 
   }
 
+
   if (
+    text.includes("cheap") ||
     text.includes("cheaper") ||
-    text.includes("budget") ||
-    text.includes("cheap")
+    text.includes("budget")
   ) {
 
     return `
-      To reduce trip cost, VYORA would first optimize accommodation,
-      then transport distance, then paid activities — while protecting
-      the experiences you marked as important.
+      To reduce cost, VYORA would first optimize
+      accommodation, then transport distance,
+      then paid activities while protecting
+      the experiences you value most.
+
       <br><br>
-      <small>Prototype response · Real optimization engine not connected.</small>
+
+      <small>
+        Prototype response · Real optimization engine not connected.
+      </small>
     `;
 
   }
+
 
   if (
     text.includes("hidden") ||
@@ -1039,14 +1055,19 @@ function getAssistantResponse(message) {
   ) {
 
     return `
-      Look beyond the headline attractions.
-      VYORA can prioritize quieter neighbourhoods, local markets,
-      regional food and less crowded experiences.
+      Try moving beyond headline attractions.
+      VYORA can prioritize quieter neighbourhoods,
+      markets, local food and alternative experiences.
+
       <br><br>
-      <small>Prototype response · Local discovery API not connected.</small>
+
+      <small>
+        Prototype response · Local discovery API not connected.
+      </small>
     `;
 
   }
+
 
   if (
     text.includes("kerala") ||
@@ -1054,154 +1075,219 @@ function getAssistantResponse(message) {
   ) {
 
     return `
-      Kerala is a strong match for nature, slower travel and backwaters.
-      A route could combine Kochi, a hill destination and a relaxed
-      backwater experience.
+      Kerala is a strong fit for nature,
+      slower travel and backwaters.
+      A route could combine a city experience,
+      a hill destination and a relaxed backwater stay.
+
       <br><br>
-      <small>Prototype response · No live destination database connected.</small>
+
+      <small>
+        Prototype response · Live destination data not connected.
+      </small>
     `;
 
   }
+
 
   if (
     text.includes("rajasthan") ||
-    text.includes("history") ||
-    text.includes("culture")
+    text.includes("culture") ||
+    text.includes("history")
   ) {
 
     return `
-      Rajasthan works well for heritage, architecture and culture.
-      VYORA would balance major landmarks with local food,
-      markets and quieter heritage experiences.
+      Rajasthan works well for heritage,
+      architecture, food and culture.
+      VYORA could balance major landmarks
+      with quieter local experiences.
+
       <br><br>
-      <small>Prototype response · Real AI destination reasoning not connected.</small>
+
+      <small>
+        Prototype response · External AI not connected.
+      </small>
     `;
 
   }
 
+
   return `
-    I understand the request, but I'm currently running in
-    VYORA prototype mode. Try asking me about Goa, Kerala,
-    Rajasthan, budgets, cheaper trips or hidden gems.
+    I'm currently running in VYORA prototype mode.
+    Try asking about Goa, Kerala, Rajasthan,
+    budgets, cheaper trips or hidden gems.
+
     <br><br>
+
     <small>
-      Prototype response · External AI API is not connected.
+      External AI API is not connected.
     </small>
   `;
 
 }
 
-/* ================= MODAL ================= */
+function sendMessage() {
+
+  const input =
+    $("#chatInput");
+
+  const messages =
+    $("#chatMessages");
+
+  if (!input || !messages) return;
+
+
+  const message =
+    input.value.trim();
+
+  if (!message) return;
+
+
+  addMessage(
+    escapeHTML(message),
+    "user"
+  );
+
+
+  input.value = "";
+
+
+  const typingId =
+    `typing-${Date.now()}`;
+
+
+  messages.insertAdjacentHTML(
+    "beforeend",
+    `
+      <div
+        class="bot-message"
+        id="${typingId}"
+      >
+        <span class="message-avatar">✦</span>
+
+        <div class="dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+    `
+  );
+
+
+  messages.scrollTop =
+    messages.scrollHeight;
+
+
+  setTimeout(() => {
+
+    document
+      .getElementById(typingId)
+      ?.remove();
+
+
+    addMessage(
+      getAssistantResponse(message),
+      "bot"
+    );
+
+  }, 800);
+
+}
+
+
+/* ================= MODALS ================= */
 
 function openModal(title, text) {
 
-  const backdrop =
-    document.getElementById("modalBackdrop");
+  $("#modalTitle").textContent =
+    title;
 
-  const modalTitle =
-    document.getElementById("modalTitle");
+  $("#modalText").textContent =
+    text;
 
-  const modalText =
-    document.getElementById("modalText");
-
-  if (!backdrop) return;
-
-  if (modalTitle) {
-    modalTitle.textContent = title;
-  }
-
-  if (modalText) {
-    modalText.textContent = text;
-  }
-
-  backdrop.classList.add("open");
+  $("#modalBackdrop")
+    ?.classList.add("open");
 
 }
 
-function closeModal(event) {
+function closeModal() {
 
-  if (
-    event &&
-    event.target !== document.getElementById("modalBackdrop")
-  ) {
-    return;
-  }
-
-  document
-    .getElementById("modalBackdrop")
+  $("#modalBackdrop")
     ?.classList.remove("open");
 
 }
-
-/* ================= PROTOTYPE NOTICE ================= */
 
 function showPrototypeNotice() {
 
   openModal(
     "Prototype feature",
-    "This interaction is intentionally represented as a frontend prototype. Real authentication, hotel availability, booking, payment, maps and live pricing should be connected through a secure backend."
+    "This frontend demonstrates the product experience. Real authentication, hotel availability, payments, live pricing and maps require a backend and external APIs."
   );
 
 }
-
-/* ================= ALL DESTINATIONS ================= */
 
 function showDestinations() {
 
   showToast(
-    "VYORA discovery",
-    "The prototype currently showcases Goa, Kerala and Rajasthan. More destinations can be loaded from a future destination database."
+    "VYORA Discovery",
+    "Current showcase destinations are Goa, Kerala and Rajasthan."
   );
 
 }
 
+
 /* ================= TOAST ================= */
 
-let toastTimeout;
+let toastTimer;
 
 function showToast(title, text) {
 
   const toast =
-    document.getElementById("toast");
-
-  const toastTitle =
-    document.getElementById("toastTitle");
-
-  const toastText =
-    document.getElementById("toastText");
+    $("#toast");
 
   if (!toast) return;
 
-  toastTitle.textContent = title;
-  toastText.textContent = text;
+  $("#toastTitle").textContent =
+    title;
+
+  $("#toastText").textContent =
+    text;
 
   toast.classList.add("show");
 
-  clearTimeout(toastTimeout);
+  clearTimeout(toastTimer);
 
-  toastTimeout = setTimeout(() => {
+  toastTimer =
+    setTimeout(() => {
 
-    toast.classList.remove("show");
+      toast.classList.remove("show");
 
-  }, 3500);
+    }, 3500);
 
 }
 
+
 /* ================= SCROLL REVEAL ================= */
 
-function setupRevealAnimations() {
+function setupReveal() {
 
   const elements =
     $$(".reveal");
 
-  if (!("IntersectionObserver" in window)) {
+
+  if (
+    !("IntersectionObserver" in window)
+  ) {
 
     elements.forEach(
-      element => element.classList.add("visible")
+      el => el.classList.add("visible")
     );
 
     return;
   }
+
 
   const observer =
     new IntersectionObserver(
@@ -1211,9 +1297,13 @@ function setupRevealAnimations() {
 
           if (entry.isIntersecting) {
 
-            entry.target.classList.add("visible");
+            entry.target.classList.add(
+              "visible"
+            );
 
-            observer.unobserve(entry.target);
+            observer.unobserve(
+              entry.target
+            );
 
           }
 
@@ -1222,297 +1312,274 @@ function setupRevealAnimations() {
       },
       {
         threshold: .12,
-        rootMargin: "0px 0px -45px 0px"
+        rootMargin: "0px 0px -40px 0px"
       }
     );
 
+
   elements.forEach(
-    element => observer.observe(element)
+    el => observer.observe(el)
   );
 
 }
+
 
 /* ================= COUNTERS ================= */
 
 function setupCounters() {
 
-  const counters =
-    $$("[data-counter]");
+  $$(".hero-mini-stats [data-counter]")
+    .forEach(counter => {
 
-  counters.forEach(counter => {
+      const target =
+        Number(counter.dataset.counter);
 
-    const target =
-      Number(counter.dataset.counter);
+      let start = 0;
 
-    let current = 0;
+      const duration = 1000;
+      const startTime =
+        performance.now();
 
-    const duration = 1100;
-    const startTime = performance.now();
 
-    function update(time) {
+      function animate(time) {
 
-      const progress =
-        Math.min(
-          (time - startTime) / duration,
-          1
-        );
+        const progress =
+          Math.min(
+            (time - startTime) / duration,
+            1
+          );
 
-      const eased =
-        1 - Math.pow(1 - progress, 3);
+        const eased =
+          1 - Math.pow(1 - progress, 3);
 
-      current =
-        Math.round(target * eased);
+        start =
+          Math.round(target * eased);
 
-      counter.textContent =
-        `${current}+`;
+        counter.textContent =
+          `${start}+`;
 
-      if (progress < 1) {
-        requestAnimationFrame(update);
+
+        if (progress < 1) {
+
+          requestAnimationFrame(
+            animate
+          );
+
+        }
+
       }
 
-    }
 
-    requestAnimationFrame(update);
+      requestAnimationFrame(
+        animate
+      );
 
-  });
+    });
 
 }
 
-/* ================= 3D TILT ================= */
 
-function setupTiltCards() {
+/* ================= TILT ================= */
 
-  if (window.matchMedia("(pointer: coarse)").matches) {
+function setupTilt() {
+
+  if (
+    window.matchMedia("(pointer:coarse)")
+      .matches
+  ) {
     return;
   }
 
+
   $$(".tilt-card").forEach(card => {
 
-    card.addEventListener("mousemove", event => {
+    card.addEventListener(
+      "mousemove",
+      event => {
 
-      const rect =
-        card.getBoundingClientRect();
+        const rect =
+          card.getBoundingClientRect();
 
-      const x =
-        event.clientX - rect.left;
+        const x =
+          event.clientX - rect.left;
 
-      const y =
-        event.clientY - rect.top;
+        const y =
+          event.clientY - rect.top;
 
-      const rotateX =
-        ((y / rect.height) - .5) * -5;
+        const rotateX =
+          ((y / rect.height) - .5) * -4;
 
-      const rotateY =
-        ((x / rect.width) - .5) * 5;
+        const rotateY =
+          ((x / rect.width) - .5) * 4;
 
-      card.style.transform =
-        `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+        card.style.transform =
+          `
+            perspective(900px)
+            rotateX(${rotateX}deg)
+            rotateY(${rotateY}deg)
+            translateY(-4px)
+          `;
 
-    });
+      }
+    );
 
-    card.addEventListener("mouseleave", () => {
 
-      card.style.transform = "";
+    card.addEventListener(
+      "mouseleave",
+      () => {
 
-    });
+        card.style.transform = "";
+
+      }
+    );
 
   });
 
 }
+
 
 /* ================= HERO PARALLAX ================= */
 
 function setupHeroParallax() {
 
   const card =
-    document.getElementById("heroCard");
+    $("#heroCard");
 
   if (!card) return;
 
-  if (window.matchMedia("(pointer: coarse)").matches) {
+
+  if (
+    window.matchMedia("(pointer:coarse)")
+      .matches
+  ) {
     return;
   }
 
-  window.addEventListener("mousemove", event => {
 
-    const x =
-      (event.clientX / window.innerWidth - .5);
-
-    const y =
-      (event.clientY / window.innerHeight - .5);
-
-    card.style.transform =
-      `
-      perspective(1200px)
-      rotateY(${x * -7}deg)
-      rotateX(${y * 4}deg)
-      translate3d(${x * 5}px, ${y * 5}px, 0)
-      `;
-
-  });
-
-}
-
-/* ================= MAGNETIC BUTTONS ================= */
-
-function setupMagneticButtons() {
-
-  if (window.matchMedia("(pointer: coarse)").matches) {
-    return;
-  }
-
-  $$(".magnetic").forEach(button => {
-
-    button.addEventListener("mousemove", event => {
-
-      const rect =
-        button.getBoundingClientRect();
-
-      const x =
-        event.clientX - rect.left - rect.width / 2;
-
-      const y =
-        event.clientY - rect.top - rect.height / 2;
-
-      button.style.transform =
-        `translate(${x * .08}px, ${y * .08}px)`;
-
-    });
-
-    button.addEventListener("mouseleave", () => {
-
-      button.style.transform = "";
-
-    });
-
-  });
-
-}
-
-/* ================= CHAT KEYBOARD ================= */
-
-function setupChatInput() {
-
-  const input =
-    document.getElementById("chatInput");
-
-  if (!input) return;
-
-  input.addEventListener(
-    "keydown",
+  window.addEventListener(
+    "mousemove",
     event => {
 
-      if (event.key === "Enter") {
+      const x =
+        event.clientX /
+        window.innerWidth -
+        .5;
 
-        event.preventDefault();
-        sendMessage();
+      const y =
+        event.clientY /
+        window.innerHeight -
+        .5;
 
-      }
 
-      if (event.key === "Escape") {
-        closeAssistant();
-      }
+      card.style.transform =
+        `
+          perspective(1200px)
+          rotateY(${x * -5}deg)
+          rotateX(${y * 3}deg)
+        `;
 
     }
   );
 
 }
 
-/* ================= ESCAPE HANDLER ================= */
 
-document.addEventListener("keydown", event => {
+/* ================= CHAT INPUT ================= */
 
-  if (event.key === "Escape") {
+function setupChat() {
 
-    closeAssistant();
+  $("#chatInput")
+    ?.addEventListener(
+      "keydown",
+      event => {
 
-    document
-      .getElementById("modalBackdrop")
-      ?.classList.remove("open");
+        if (event.key === "Enter") {
 
-    closeMobileMenu();
+          event.preventDefault();
 
-  }
-
-});
-
-/* ================= LOAD SAVED TRIP ================= */
-
-function loadSavedTrip() {
-
-  try {
-
-    const saved =
-      localStorage.getItem("vyoraSavedTrip");
-
-    if (!saved) return;
-
-    const trip =
-      JSON.parse(saved);
-
-    if (!trip.destination) return;
-
-    currentJourney = trip;
-
-  } catch (error) {
-
-    console.warn(
-      "VYORA saved trip could not be loaded."
-    );
-
-  }
-
-}
-
-/* ================= INIT ================= */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  setupRevealAnimations();
-
-  setupCounters();
-
-  setupTiltCards();
-
-  setupHeroParallax();
-
-  setupMagneticButtons();
-
-  setupChatInput();
-
-  loadSavedTrip();
-
-  /* Keep planner/search fields synchronized. */
-
-  const destinationInput =
-    document.getElementById("destinationInput");
-
-  const plannerDestination =
-    document.getElementById("plannerDestination");
-
-  if (destinationInput && plannerDestination) {
-
-    destinationInput.addEventListener(
-      "input",
-      () => {
-
-        if (
-          destinationInput.value.trim() &&
-          !plannerDestination.value.trim()
-        ) {
-
-          plannerDestination.value =
-            destinationInput.value;
+          sendMessage();
 
         }
 
       }
     );
 
+}
+
+
+/* ================= KERALA IMAGE FALLBACK ================= */
+
+function setupImageFallback() {
+
+  const test =
+    new Image();
+
+  const fallback =
+    "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1000&q=90";
+
+
+  test.onerror = () => {
+
+    const kerala =
+      $(".bg-kerala");
+
+    if (!kerala) return;
+
+    kerala.style.backgroundImage =
+      `
+        linear-gradient(
+          transparent,
+          rgba(0,0,0,.75)
+        ),
+        url("${fallback}")
+      `;
+
+  };
+
+
+  test.src =
+    "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1000&q=90";
+
+}
+
+
+/* ================= KEYBOARD ================= */
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (event.key === "Escape") {
+
+      closeAssistant();
+      closeModal();
+      closeMobileMenu();
+
+    }
+
   }
+);
 
-  /* Set a default discovery state. */
 
-  showExperience("Local food");
+/* ================= INIT ================= */
 
-});
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    setupReveal();
+
+    setupCounters();
+
+    setupTilt();
+
+    setupHeroParallax();
+
+    setupChat();
+
+    setupImageFallback();
+
+    updateActiveNav();
+
+  }
+);
