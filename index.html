@@ -1,0 +1,884 @@
+<div class="app" id="app">
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="navbar" id="navbar">
+
+    <a class="brand" href="#">
+      <div class="brand-mark">V</div>
+      <div>
+        <div class="brand-name">VYORA</div>
+        <div class="brand-tag">Travel Beyond the Ordinary.</div>
+      </div>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#explore" class="nav-link active">Explore</a>
+      <a href="#planner" class="nav-link">AI Planner</a>
+      <a href="#hotels" class="nav-link">Hotels</a>
+      <a href="#experiences" class="nav-link">Experiences</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button class="login-btn" onclick="showPrototypeNotice()">Log in</button>
+      <button class="nav-cta magnetic" onclick="scrollToPlanner()">
+        <span>✦</span> Plan My Trip
+      </button>
+    </div>
+
+    <button class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Open menu">
+      ☰
+    </button>
+
+  </header>
+
+  <!-- ================= MOBILE MENU ================= -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#explore" onclick="closeMobileMenu()">Explore</a>
+    <a href="#planner" onclick="closeMobileMenu()">AI Planner</a>
+    <a href="#hotels" onclick="closeMobileMenu()">Hotels</a>
+    <a href="#experiences" onclick="closeMobileMenu()">Experiences</a>
+    <button onclick="scrollToPlanner(); closeMobileMenu()">✦ Plan My Trip</button>
+  </div>
+
+  <!-- ================= HERO ================= -->
+  <main>
+
+    <section class="hero" id="home">
+
+      <div class="hero-content reveal">
+
+        <div class="eyebrow">
+          <span class="pulse"></span>
+          AI-POWERED TRAVEL
+          <span class="eyebrow-line"></span>
+        </div>
+
+        <h1>
+          Your journey.
+          <span>Reimagined.</span>
+        </h1>
+
+        <p class="hero-text">
+          Discover extraordinary places, stay smarter, and let VYORA
+          design a journey built around your interests, time and budget.
+        </p>
+
+        <div class="hero-actions">
+          <button class="primary-btn magnetic" onclick="scrollToPlanner()">
+            <span>✦</span> Plan My Trip
+          </button>
+
+          <button class="secondary-btn" onclick="scrollToExplore()">
+            Explore destinations
+            <span>↗</span>
+          </button>
+        </div>
+
+        <div class="hero-trust">
+          <div class="avatars">
+            <span>✈</span>
+            <span>◉</span>
+            <span>⌖</span>
+          </div>
+
+          <div>
+            <strong>Travel differently.</strong>
+            <small>Personalized by intelligence.</small>
+          </div>
+        </div>
+
+        <div class="hero-mini-stats">
+          <div>
+            <strong data-counter="120">0+</strong>
+            <span>destinations</span>
+          </div>
+          <div>
+            <strong data-counter="35">0+</strong>
+            <span>experience types</span>
+          </div>
+          <div>
+            <strong data-counter="24">0/7</strong>
+            <span>travel intelligence</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hero-visual reveal reveal-delay">
+
+        <div class="glow"></div>
+        <div class="glow glow-two"></div>
+
+        <div class="floating-orb orb-one"></div>
+        <div class="floating-orb orb-two"></div>
+
+        <div class="destination-card" id="heroCard">
+
+          <div class="destination-image">
+            <div class="image-overlay"></div>
+
+            <div class="location-label">
+              <span>●</span> Kerala, India
+            </div>
+
+            <div class="image-meta">
+              <span>AI CURATED</span>
+              <span>04 DAYS</span>
+            </div>
+
+            <div class="image-title">
+              Where will you<br>
+              <strong>go next?</strong>
+            </div>
+          </div>
+
+          <div class="floating-ai">
+            <div class="ai-icon">✦</div>
+            <div>
+              <small>VYORA AI</small>
+              <strong>Journey ready.</strong>
+            </div>
+            <span class="status-dot"></span>
+          </div>
+
+          <div class="route-card">
+            <div class="route-top">
+              <small>SMART ROUTE</small>
+              <span>94% fit</span>
+            </div>
+
+            <div class="route-line">
+              <span></span>
+              <div></div>
+              <span></span>
+            </div>
+
+            <div class="route-bottom">
+              <small>KOCHI</small>
+              <small>MUNNAR</small>
+              <small>ALLEPPEY</small>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= SEARCH ================= -->
+    <section class="search-section reveal">
+
+      <div class="search-box">
+
+        <div class="search-field">
+          <span class="field-icon">⌕</span>
+          <div>
+            <small>DESTINATION</small>
+            <input
+              id="destinationInput"
+              type="text"
+              placeholder="Where do you want to go?"
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="search-field">
+          <span class="field-icon">◷</span>
+          <div>
+            <small>TRIP LENGTH</small>
+            <select id="daysInput">
+              <option value="3">3 days</option>
+              <option value="4">4 days</option>
+              <option value="5">5 days</option>
+              <option value="7">7 days</option>
+              <option value="10">10 days</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="search-field">
+          <span class="field-icon">₹</span>
+          <div>
+            <small>BUDGET</small>
+            <select id="budgetInput">
+              <option value="10000">₹10,000</option>
+              <option value="25000">₹25,000</option>
+              <option value="50000">₹50,000</option>
+              <option value="100000">₹1,00,000+</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="search-btn magnetic" onclick="generateTrip()">
+          <span>✦</span> Create journey
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+
+      <div class="section-heading reveal">
+        <div>
+          <span class="section-label">01 / DISCOVER</span>
+          <h2>Places worth<br><em>remembering.</em></h2>
+        </div>
+
+        <button class="text-btn" onclick="showDestinations()">
+          View all destinations <span>→</span>
+        </button>
+      </div>
+
+      <div class="destination-grid">
+
+        <article class="place-card place-large reveal tilt-card">
+          <div class="place-bg bg-goa"></div>
+          <div class="card-shine"></div>
+
+          <div class="place-top">
+            <span>01</span>
+            <span>POPULAR</span>
+          </div>
+
+          <div class="place-info">
+            <span>India</span>
+            <h3>Goa</h3>
+            <p>Beaches · Culture · Nightlife</p>
+          </div>
+
+          <button class="card-arrow" onclick="prefillDestination('Goa')">↗</button>
+        </article>
+
+        <article class="place-card reveal reveal-delay tilt-card">
+          <div class="place-bg bg-kerala"></div>
+          <div class="card-shine"></div>
+
+          <div class="place-top">
+            <span>02</span>
+            <span>ESCAPE</span>
+          </div>
+
+          <div class="place-info">
+            <span>India</span>
+            <h3>Kerala</h3>
+            <p>Backwaters · Nature</p>
+          </div>
+
+          <button class="card-arrow" onclick="prefillDestination('Kerala')">↗</button>
+        </article>
+
+        <article class="place-card reveal reveal-delay-2 tilt-card">
+          <div class="place-bg bg-rajasthan"></div>
+          <div class="card-shine"></div>
+
+          <div class="place-top">
+            <span>03</span>
+            <span>HERITAGE</span>
+          </div>
+
+          <div class="place-info">
+            <span>India</span>
+            <h3>Rajasthan</h3>
+            <p>History · Heritage</p>
+          </div>
+
+          <button class="card-arrow" onclick="prefillDestination('Rajasthan')">↗</button>
+        </article>
+
+      </div>
+
+      <div class="destination-strip reveal">
+        <span>CURATED FOR CURIOUS TRAVELLERS</span>
+        <div></div>
+        <span>DESTINATIONS • EXPERIENCES • STAYS • ROUTES</span>
+      </div>
+
+    </section>
+
+    <!-- ================= AI PLANNER ================= -->
+    <section class="planner-section" id="planner">
+
+      <div class="planner-copy reveal">
+
+        <span class="section-label">02 / YOUR PERSONAL TRAVEL INTELLIGENCE</span>
+
+        <h2>
+          Don't plan a trip.
+          <em>Design a journey.</em>
+        </h2>
+
+        <p>
+          Tell VYORA where you want to go, how you like to travel,
+          how long you have and what you want to spend. The prototype
+          then builds a personalized journey around those inputs.
+        </p>
+
+        <div class="feature-list">
+
+          <div class="feature-row">
+            <span>01</span>
+            <div>
+              <strong>Understands you</strong>
+              <p>Interests, budget, pace and travel preferences.</p>
+            </div>
+          </div>
+
+          <div class="feature-row">
+            <span>02</span>
+            <div>
+              <strong>Builds intelligently</strong>
+              <p>Places, routes and experiences are combined into one journey.</p>
+            </div>
+          </div>
+
+          <div class="feature-row">
+            <span>03</span>
+            <div>
+              <strong>Adapts instantly</strong>
+              <p>Change your inputs and regenerate a completely different journey.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="planner-tech-note">
+          <span>✦</span>
+          Prototype intelligence layer · Backend/API integration ready
+        </div>
+
+      </div>
+
+      <div class="planner-card reveal reveal-delay">
+
+        <div class="planner-top">
+          <div>
+            <small>VYORA AI PLANNER</small>
+            <h3>Let's build your journey.</h3>
+          </div>
+          <span class="ai-badge">AI</span>
+        </div>
+
+        <label>Where are you going?</label>
+
+        <div class="input-wrap">
+          <span>⌖</span>
+          <input
+            id="plannerDestination"
+            type="text"
+            placeholder="e.g. Visakhapatnam"
+          >
+        </div>
+
+        <div class="planner-grid">
+
+          <div>
+            <label>Duration</label>
+            <div class="select-wrap">
+              <span>◷</span>
+              <select id="plannerDays">
+                <option value="3">3 days</option>
+                <option value="4">4 days</option>
+                <option value="5">5 days</option>
+                <option value="7">7 days</option>
+                <option value="10">10 days</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Budget</label>
+            <div class="select-wrap">
+              <span>₹</span>
+              <select id="plannerBudget">
+                <option value="10000">₹10K</option>
+                <option value="25000">₹25K</option>
+                <option value="50000">₹50K</option>
+                <option value="100000">₹1L+</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <label>What do you love?</label>
+
+        <div class="interest-list">
+          <button class="interest active" data-interest="Beaches" onclick="toggleInterest(this)">Beaches</button>
+          <button class="interest" data-interest="Food" onclick="toggleInterest(this)">Food</button>
+          <button class="interest" data-interest="Adventure" onclick="toggleInterest(this)">Adventure</button>
+          <button class="interest" data-interest="Culture" onclick="toggleInterest(this)">Culture</button>
+          <button class="interest" data-interest="Nature" onclick="toggleInterest(this)">Nature</button>
+          <button class="interest" data-interest="History" onclick="toggleInterest(this)">History</button>
+          <button class="interest" data-interest="Shopping" onclick="toggleInterest(this)">Shopping</button>
+          <button class="interest" data-interest="Nightlife" onclick="toggleInterest(this)">Nightlife</button>
+        </div>
+
+        <button class="generate-btn magnetic" onclick="generatePlanner()">
+          <span>✦</span>
+          <span>Generate my journey</span>
+          <span>→</span>
+        </button>
+
+        <div id="plannerResult" class="planner-result"></div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= ITINERARY ================= -->
+    <section class="section itinerary-section" id="itinerary">
+
+      <div class="section-heading reveal">
+        <div>
+          <span class="section-label">03 / YOUR JOURNEY</span>
+          <h2>A journey built<br><em>around you.</em></h2>
+        </div>
+
+        <div class="journey-actions">
+          <button onclick="saveTrip()">♡ Save trip</button>
+          <button onclick="shareTrip()">↗ Share</button>
+        </div>
+      </div>
+
+      <div class="journey-banner reveal">
+        <div>
+          <span>VYORA JOURNEY</span>
+          <strong id="journeyTitle">Your next adventure</strong>
+          <small id="journeyMeta">Generate a journey to personalize this space.</small>
+        </div>
+
+        <div class="journey-score">
+          <span>AI FIT</span>
+          <strong id="journeyScore">—</strong>
+        </div>
+      </div>
+
+      <div class="itinerary-layout">
+
+        <div class="timeline" id="itineraryTimeline">
+          <div class="empty-itinerary">
+            <div>✦</div>
+            <strong>Your itinerary will appear here.</strong>
+            <p>Use the AI Planner above to generate a personalized route.</p>
+          </div>
+        </div>
+
+        <aside class="budget-card reveal reveal-delay">
+
+          <div class="budget-card-top">
+            <div>
+              <span>ESTIMATED BUDGET</span>
+              <strong id="budgetTotal">₹0</strong>
+            </div>
+            <div class="budget-ring" id="budgetRing">
+              <span id="budgetPercent">0%</span>
+            </div>
+          </div>
+
+          <div class="budget-line">
+            <div>
+              <span>Accommodation</span>
+              <strong id="budgetHotel">₹0</strong>
+            </div>
+            <div class="progress"><span id="hotelProgress"></span></div>
+          </div>
+
+          <div class="budget-line">
+            <div>
+              <span>Food</span>
+              <strong id="budgetFood">₹0</strong>
+            </div>
+            <div class="progress"><span id="foodProgress"></span></div>
+          </div>
+
+          <div class="budget-line">
+            <div>
+              <span>Transport</span>
+              <strong id="budgetTransport">₹0</strong>
+            </div>
+            <div class="progress"><span id="transportProgress"></span></div>
+          </div>
+
+          <div class="budget-line">
+            <div>
+              <span>Activities</span>
+              <strong id="budgetActivities">₹0</strong>
+            </div>
+            <div class="progress"><span id="activitiesProgress"></span></div>
+          </div>
+
+          <div class="budget-note" id="budgetNote">
+            Generate a journey to see budget intelligence.
+          </div>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+    <!-- ================= HOTELS ================= -->
+    <section class="section" id="hotels">
+
+      <div class="section-heading reveal">
+        <div>
+          <span class="section-label">04 / STAY SMARTER</span>
+          <h2>Hotels chosen<br><em>for you.</em></h2>
+        </div>
+
+        <button class="text-btn" onclick="showPrototypeNotice()">
+          Explore hotels <span>→</span>
+        </button>
+      </div>
+
+      <div class="hotel-grid">
+
+        <article class="hotel-card reveal tilt-card">
+
+          <div class="hotel-image hotel-one">
+            <span class="match">94% AI MATCH</span>
+            <button class="heart-btn" onclick="toggleFavorite(this)">♡</button>
+
+            <div class="hotel-overlay">
+              <span>Best for beach + nightlife</span>
+            </div>
+          </div>
+
+          <div class="hotel-content">
+
+            <div class="hotel-location">GOA · INDIA</div>
+            <h3>The Fern Coast</h3>
+            <p class="rating">★★★★★ <span>4.8</span></p>
+
+            <div class="recommendation">
+              <span>✦</span>
+              <div>
+                <small>WHY VYORA RECOMMENDS IT</small>
+                <p>Strong fit for relaxed days, beaches and evening experiences.</p>
+              </div>
+            </div>
+
+            <div class="hotel-bottom">
+              <strong>₹2,499 <small>/ night</small></strong>
+              <button onclick="showHotelDemo('The Fern Coast')">View →</button>
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="hotel-card reveal reveal-delay tilt-card">
+
+          <div class="hotel-image hotel-two">
+            <span class="match">91% AI MATCH</span>
+            <button class="heart-btn" onclick="toggleFavorite(this)">♡</button>
+
+            <div class="hotel-overlay">
+              <span>Best for nature + calm</span>
+            </div>
+          </div>
+
+          <div class="hotel-content">
+
+            <div class="hotel-location">KERALA · INDIA</div>
+            <h3>Lakeview Retreat</h3>
+            <p class="rating">★★★★★ <span>4.7</span></p>
+
+            <div class="recommendation">
+              <span>✦</span>
+              <div>
+                <small>WHY VYORA RECOMMENDS IT</small>
+                <p>Ideal for slower travel, greenery, backwaters and quiet mornings.</p>
+              </div>
+            </div>
+
+            <div class="hotel-bottom">
+              <strong>₹3,200 <small>/ night</small></strong>
+              <button onclick="showHotelDemo('Lakeview Retreat')">View →</button>
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="hotel-card reveal reveal-delay-2 tilt-card">
+
+          <div class="hotel-image hotel-three">
+            <span class="match">89% AI MATCH</span>
+            <button class="heart-btn" onclick="toggleFavorite(this)">♡</button>
+
+            <div class="hotel-overlay">
+              <span>Best for heritage + culture</span>
+            </div>
+          </div>
+
+          <div class="hotel-content">
+
+            <div class="hotel-location">RAJASTHAN · INDIA</div>
+            <h3>Heritage Palace</h3>
+            <p class="rating">★★★★★ <span>4.9</span></p>
+
+            <div class="recommendation">
+              <span>✦</span>
+              <div>
+                <small>WHY VYORA RECOMMENDS IT</small>
+                <p>A strong match for history, architecture and cultural discovery.</p>
+              </div>
+            </div>
+
+            <div class="hotel-bottom">
+              <strong>₹4,100 <small>/ night</small></strong>
+              <button onclick="showHotelDemo('Heritage Palace')">View →</button>
+            </div>
+
+          </div>
+
+        </article>
+
+      </div>
+
+      <div class="prototype-bar reveal">
+        <span>✦</span>
+        Hotel data shown here is prototype content. Real availability, booking and live pricing require API integration.
+      </div>
+
+    </section>
+
+    <!-- ================= MAP ================= -->
+    <section class="map-section">
+
+      <div class="map-copy reveal">
+        <span class="section-label">05 / SMART LOCATION</span>
+        <h2>See your journey<br><em>take shape.</em></h2>
+        <p>
+          A map-ready experience for hotels, attractions, experiences
+          and routes — designed for future live map integration.
+        </p>
+
+        <div class="map-legend">
+          <span><i class="legend-dot hotel"></i> Hotels</span>
+          <span><i class="legend-dot place"></i> Attractions</span>
+          <span><i class="legend-dot food"></i> Experiences</span>
+        </div>
+      </div>
+
+      <div class="demo-map reveal reveal-delay">
+
+        <div class="map-grid"></div>
+
+        <div class="map-road road-a"></div>
+        <div class="map-road road-b"></div>
+        <div class="map-road road-c"></div>
+
+        <div class="map-label label-a">Old Town</div>
+        <div class="map-label label-b">Lake District</div>
+        <div class="map-label label-c">Market Street</div>
+
+        <button class="map-pin pin-a" onclick="mapPin('Hotel')">⌂</button>
+        <button class="map-pin pin-b" onclick="mapPin('Attraction')">◆</button>
+        <button class="map-pin pin-c" onclick="mapPin('Experience')">✦</button>
+
+        <div class="map-route-line"></div>
+
+        <div class="map-status">
+          <span class="status-pulse"></span>
+          DEMO MAP · LIVE API READY
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= EXPERIENCES ================= -->
+    <section class="experience-section" id="experiences">
+
+      <div class="experience-copy reveal">
+
+        <span class="section-label">06 / BEYOND TOURISM</span>
+
+        <h2>
+          Find the places<br>
+          <em>locals know.</em>
+        </h2>
+
+        <p>
+          VYORA goes beyond the tourist checklist.
+          Discover food, markets, traditions, hidden places
+          and experiences that make a destination feel alive.
+        </p>
+
+        <div class="experience-chips">
+          <button onclick="showExperience('Local food')">Local food</button>
+          <button onclick="showExperience('Culture')">Culture</button>
+          <button onclick="showExperience('Markets')">Markets</button>
+          <button onclick="showExperience('Hidden places')">Hidden places</button>
+          <button onclick="showExperience('Adventure')">Adventure</button>
+        </div>
+
+        <div class="experience-reveal-box" id="experienceRevealBox">
+          <span>✦</span>
+          <div>
+            <small>VYORA DISCOVERY</small>
+            <strong id="experienceTitle">Choose an interest.</strong>
+            <p id="experienceText">
+              VYORA will surface a prototype recommendation here.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="experience-visual reveal reveal-delay">
+
+        <div class="experience-orbit orbit-one"></div>
+        <div class="experience-orbit orbit-two"></div>
+
+        <div class="experience-stat">
+          <span>✦</span>
+          <strong>AI</strong>
+          <small>POWERED DISCOVERY</small>
+        </div>
+
+        <div class="floating-tag tag-one">LOCAL</div>
+        <div class="floating-tag tag-two">HIDDEN</div>
+        <div class="floating-tag tag-three">AUTHENTIC</div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= AI ASSISTANT ================= -->
+    <section class="assistant-section">
+
+      <div class="assistant-card reveal">
+
+        <div class="assistant-icon">✦</div>
+
+        <div class="assistant-copy">
+          <span class="section-label">07 / MEET YOUR TRAVEL COMPANION</span>
+          <h2>Ask VYORA anything.</h2>
+          <p>
+            From “Where should I go?” to “Make my trip cheaper,”
+            the prototype assistant understands common travel intents
+            and demonstrates how a future AI layer can respond.
+          </p>
+        </div>
+
+        <button class="assistant-btn magnetic" onclick="openAssistant()">
+          Chat with VYORA AI <span>→</span>
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+
+    <div class="footer-brand">
+      <div class="brand-mark">V</div>
+      <div>
+        <strong>VYORA</strong>
+        <small>Travel Beyond the Ordinary.</small>
+      </div>
+    </div>
+
+    <div class="footer-links">
+      <a href="#explore">Explore</a>
+      <a href="#planner">AI Planner</a>
+      <a href="#hotels">Hotels</a>
+      <a href="#experiences">Experiences</a>
+    </div>
+
+    <p>© 2026 VYORA · Intelligent travel, reimagined.</p>
+
+  </footer>
+
+  <!-- ================= TOAST ================= -->
+  <div class="toast" id="toast">
+    <span>✦</span>
+    <div>
+      <strong id="toastTitle">VYORA</strong>
+      <p id="toastText">Action completed.</p>
+    </div>
+  </div>
+
+  <!-- ================= AI CHAT ================= -->
+  <div class="chat-window" id="chatWindow">
+
+    <div class="chat-header">
+
+      <div class="chat-brand">
+        <div class="chat-ai-icon">✦</div>
+        <div>
+          <strong>VYORA AI</strong>
+          <small>Prototype travel intelligence</small>
+        </div>
+      </div>
+
+      <button onclick="closeAssistant()">×</button>
+
+    </div>
+
+    <div class="chat-suggestions">
+      <button onclick="sendSuggestedMessage('Plan a 3-day Goa trip')">Goa trip</button>
+      <button onclick="sendSuggestedMessage('Make my trip cheaper')">Cheaper trip</button>
+      <button onclick="sendSuggestedMessage('Suggest hidden gems')">Hidden gems</button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+
+      <div class="bot-message">
+        <span class="message-avatar">✦</span>
+        <div>
+          Hi! I'm VYORA. Where are you thinking of going?
+        </div>
+      </div>
+
+    </div>
+
+    <div class="chat-input">
+      <input
+        id="chatInput"
+        type="text"
+        placeholder="Ask VYORA..."
+        autocomplete="off"
+      >
+      <button onclick="sendMessage()">↑</button>
+    </div>
+
+  </div>
+
+  <!-- ================= MODAL ================= -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+
+    <div class="modal-card">
+
+      <button class="modal-close" onclick="closeModal()">×</button>
+
+      <div class="modal-icon">✦</div>
+
+      <span class="section-label">VYORA PROTOTYPE</span>
+      <h3 id="modalTitle">Coming next</h3>
+      <p id="modalText">
+        This feature is represented as a working prototype interaction.
+        Real backend/API integration can be connected later.
+      </p>
+
+      <button class="primary-btn" onclick="closeModal()">Continue exploring</button>
+
+    </div>
+
+  </div>
+
+</div>
