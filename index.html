@@ -1,7189 +1,3784 @@
-"use strict";
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
-/* =========================================================
-   VYORA
-   Travel Beyond the Ordinary.
-   Frontend Product Engine
-========================================================= */
+  <meta charset="UTF-8">
 
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-/* =========================================================
-   CONFIG
-========================================================= */
+  <meta
+    name="description"
+    content="VYORA — AI-powered smart tourism and hospitality. Travel Beyond the Ordinary."
+  >
 
-const VYORA_API =
-  "http://localhost:5000/api/auth";
+  <meta
+    name="theme-color"
+    content="#11130f"
+  >
 
-const VYORA_TRIPS_API =
-  "http://localhost:5000/api/trips";
+  <title>
+    VYORA — Travel Beyond the Ordinary.
+  </title>
 
-let currentUser = null;
+  <link rel="stylesheet" href="./style.css">
 
+</head>
 
-/* =========================================================
-   GLOBAL STATE
-========================================================= */
 
-let currentJourney = {
+<body>
 
-  tripId: null,
+  <div class="app" id="app">
 
-  destination: "",
 
-  startDate: "",
+    <!-- =====================================================
+         NAVBAR
+    ====================================================== -->
 
-  endDate: "",
+    <header
+      class="navbar"
+      id="navbar"
+    >
 
-  days: 0,
+      <a
+        href="#home"
+        class="brand"
+      >
 
-  budget: 0,
+        <div class="brand-mark">
+          V
+        </div>
 
-  interests: []
-
-};
-
-
-let toastTimer = null;
-
-
-/* =========================================================
-   DOM HELPERS
-========================================================= */
-
-const $ = (selector) => {
-
-  return document.querySelector(
-    selector
-  );
-
-};
-
-
-const $$ = (selector) => {
-
-  return [
-    ...document.querySelectorAll(
-      selector
-    )
-  ];
-
-};
-
-
-function escapeHTML(value) {
-
-  const div =
-    document.createElement(
-      "div"
-    );
-
-  div.textContent =
-    value ?? "";
-
-  return div.innerHTML;
-
-}
-
-
-function formatCurrency(value) {
-
-  const amount =
-    Number(value) || 0;
-
-  return new Intl.NumberFormat(
-    "en-IN",
-    {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0
-    }
-  ).format(amount);
-
-}
-
-
-/* =========================================================
-   DATE HELPERS
-========================================================= */
-
-function parseLocalDate(value) {
-
-  if (!value) {
-    return null;
-  }
-
-  const normalized =
-    String(value).slice(
-      0,
-      10
-    );
-
-  const date =
-    new Date(
-      `${normalized}T00:00:00`
-    );
-
-  return Number.isNaN(
-    date.getTime()
-  )
-    ? null
-    : date;
-
-}
-
-
-function calculateTripDays(
-  startDate,
-  endDate
-) {
-
-  const start =
-    parseLocalDate(
-      startDate
-    );
-
-  const end =
-    parseLocalDate(
-      endDate
-    );
-
-  if (!start || !end) {
-
-    return 0;
-
-  }
-
-  const difference =
-    end.getTime() -
-    start.getTime();
-
-  if (difference < 0) {
-
-    return 0;
-
-  }
-
-  return (
-    Math.floor(
-      difference /
-      (1000 * 60 * 60 * 24)
-    ) + 1
-  );
-
-}
-
-
-function getDateAfter(
-  startDate,
-  offset
-) {
-
-  const date =
-    parseLocalDate(
-      startDate
-    );
-
-  if (!date) {
-
-    return "";
-
-  }
-
-  date.setDate(
-    date.getDate() + offset
-  );
-
-  return date
-    .toISOString()
-    .split("T")[0];
-
-}
-
-
-function formatDate(value) {
-
-  const date =
-    parseLocalDate(
-      value
-    );
-
-  if (!date) {
-
-    return "";
-
-  }
-
-  return date.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }
-  );
-
-}
-
-
-/* =========================================================
-   DESTINATION DATABASE
-========================================================= */
-
-const destinationDatabase = {
-
-  Goa: {
-
-    country: "India",
-
-    vibe:
-      "Beach · Social · Nightlife",
-
-    description:
-      "Slow mornings, coastal drives, local food and evenings that stay awake.",
-
-    highlights:
-      "Beaches · Cafés · Water sports · Nightlife",
-
-    bestFor:
-      "Friends, couples, solo travellers and first-time explorers.",
-
-    image:
-      "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Kerala: {
-
-    country: "India",
-
-    vibe:
-      "Nature · Slow Travel · Escape",
-
-    description:
-      "Backwaters, misty hills, local flavours and a slower way to travel.",
-
-    highlights:
-      "Backwaters · Hills · Local food · Wellness",
-
-    bestFor:
-      "Nature lovers, slow travellers and peaceful escapes.",
-
-    image:
-      "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Rajasthan: {
-
-    country: "India",
-
-    vibe:
-      "Heritage · Culture · Story",
-
-    description:
-      "Palaces, old cities, desert landscapes and centuries of stories.",
-
-    highlights:
-      "Forts · Palaces · Markets · Culture",
-
-    bestFor:
-      "Culture seekers, photographers and heritage explorers.",
-
-    image:
-      "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Hyderabad: {
-
-    country: "India",
-
-    vibe:
-      "Food · Heritage · City",
-
-    description:
-      "Historic architecture, iconic food and a city where old meets new.",
-
-    highlights:
-      "Charminar · Food · Markets · Heritage",
-
-    bestFor:
-      "Food lovers and short city escapes.",
-
-    image:
-      "https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Vizag: {
-
-    country: "India",
-
-    vibe:
-      "Coast · Nature · City",
-
-    description:
-      "Clifftop views, beaches, hills and a relaxed coastal rhythm.",
-
-    highlights:
-      "Beaches · Hills · Views · Food",
-
-    bestFor:
-      "Weekend trips and coastal explorers.",
-
-    image:
-      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  "New Delhi": {
-
-    country: "India",
-
-    vibe:
-      "History · Food · Urban",
-
-    description:
-      "Monuments, markets and a constantly moving capital.",
-
-    highlights:
-      "Monuments · Food · Markets · Culture",
-
-    bestFor:
-      "First-time visitors and city explorers.",
-
-    image:
-      "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Mumbai: {
-
-    country: "India",
-
-    vibe:
-      "City · Coast · Culture",
-
-    description:
-      "A fast-moving coastal city filled with food, design and stories.",
-
-    highlights:
-      "Marine Drive · Food · Art · Nightlife",
-
-    bestFor:
-      "Urban explorers and food lovers.",
-
-    image:
-      "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Tokyo: {
-
-    country: "Japan",
-
-    vibe:
-      "Future · Culture · Food",
-
-    description:
-      "A collision of technology, tradition, food and endless city energy.",
-
-    highlights:
-      "Shibuya · Temples · Food · Design",
-
-    bestFor:
-      "First-time international travellers and city lovers.",
-
-    image:
-      "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Paris: {
-
-    country: "France",
-
-    vibe:
-      "Art · Food · Romance",
-
-    description:
-      "Architecture, museums, cafés and neighbourhoods made for wandering.",
-
-    highlights:
-      "Museums · Cafés · Architecture · Fashion",
-
-    bestFor:
-      "Art, food and culture focused travellers.",
-
-    image:
-      "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1400&q=90"
-
-  },
-
-  Singapore: {
-
-    country: "Singapore",
-
-    vibe:
-      "Modern · Food · Explorer",
-
-    description:
-      "A compact city where futuristic architecture meets incredible food.",
-
-    highlights:
-      "Gardens · Food · Skyline · Shopping",
-
-    bestFor:
-      "Short international trips and modern-city explorers.",
-
-    image:
-      "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1400&q=90"
-
-  }
-
-};
-
-
-/* =========================================================
-   ACTIVITY LIBRARY
-========================================================= */
-
-const activityLibrary = {
-
-  morning: [
-
-    {
-      name: "Local breakfast",
-      description:
-        "Start with a regional breakfast and a feel for the neighbourhood.",
-      cost: 300,
-      time: "08:30",
-      travel: "10 min"
-    },
-
-    {
-      name: "Scenic viewpoint",
-      description:
-        "Start the day with a panoramic introduction to the destination.",
-      cost: 450,
-      time: "09:00",
-      travel: "20 min"
-    },
-
-    {
-      name: "Heritage walk",
-      description:
-        "Explore architecture, stories and the character of the city.",
-      cost: 350,
-      time: "09:30",
-      travel: "15 min"
-    }
-
-  ],
-
-  afternoon: [
-
-    {
-      name: "Curated local experience",
-      description:
-        "A destination activity matched to your selected interests.",
-      cost: 900,
-      time: "13:00",
-      travel: "25 min"
-    },
-
-    {
-      name: "Hidden gem",
-      description:
-        "A quieter experience beyond the obvious tourist route.",
-      cost: 650,
-      time: "14:00",
-      travel: "30 min"
-    },
-
-    {
-      name: "Regional food trail",
-      description:
-        "Taste signature dishes and explore local food culture.",
-      cost: 750,
-      time: "13:30",
-      travel: "15 min"
-    }
-
-  ],
-
-  evening: [
-
-    {
-      name: "Golden-hour escape",
-      description:
-        "Slow down and experience the destination at sunset.",
-      cost: 500,
-      time: "17:30",
-      travel: "20 min"
-    },
-
-    {
-      name: "Local market",
-      description:
-        "Explore crafts, street life and neighbourhood energy.",
-      cost: 400,
-      time: "18:00",
-      travel: "15 min"
-    },
-
-    {
-      name: "Signature evening",
-      description:
-        "Finish the day with a memorable destination experience.",
-      cost: 700,
-      time: "19:30",
-      travel: "25 min"
-    }
-
-  ]
-
-};
-
-
-function getActivity(
-  period,
-  index
-) {
-
-  const list =
-    activityLibrary[period];
-
-  return list[
-    index % list.length
-  ];
-
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function scrollToPlanner() {
-
-  $("#planner")?.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-
-}
-
-
-function scrollToExplore() {
-
-  $("#explore")?.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-
-}
-
-
-function toggleMenu() {
-
-  const menu =
-    $("#mobileMenu");
-
-  const button =
-    $("#menuBtn");
-
-  if (!menu) {
-
-    return;
-
-  }
-
-  const open =
-    menu.classList.toggle(
-      "open"
-    );
-
-  button?.setAttribute(
-    "aria-expanded",
-    String(open)
-  );
-
-}
-
-
-function closeMobileMenu() {
-
-  $("#mobileMenu")
-    ?.classList.remove(
-      "open"
-    );
-
-  $("#menuBtn")
-    ?.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-
-}
-
-
-function updateActiveNav() {
-
-  const sections = [
-
-    "explore",
-
-    "planner",
-
-    "itinerary",
-
-    "myJourneys",
-
-    "hotels",
-
-    "experiences"
-
-  ];
-
-  const position =
-    window.scrollY + 180;
-
-  let active =
-    "explore";
-
-
-  sections.forEach(
-    (id) => {
-
-      const section =
-        document.getElementById(
-          id
-        );
-
-      if (
-        section &&
-        !section.hidden &&
-        position >=
-          section.offsetTop
-      ) {
-
-        active =
-          id;
-
-      }
-
-    }
-  );
-
-
-  $$(".nav-link")
-    .forEach(
-      (link) => {
-
-        link.classList.toggle(
-          "active",
-          link.getAttribute("href") ===
-            `#${active}`
-        );
-
-      }
-    );
-
-}
-
-
-window.addEventListener(
-  "scroll",
-  updateActiveNav,
-  {
-    passive: true
-  }
-);
-
-
-/* =========================================================
-   INTERESTS
-========================================================= */
-
-function toggleInterest(
-  button
-) {
-
-  if (!button) {
-
-    return;
-
-  }
-
-  button.classList.toggle(
-    "active"
-  );
-
-}
-
-
-function getSelectedInterests() {
-
-  return $$(".interest.active")
-    .map(
-      (button) =>
-        button.dataset.interest
-    );
-
-}
-
-
-/* =========================================================
-   DESTINATION FLOW
-========================================================= */
-
-function findDestination(
-  query
-) {
-
-  if (!query) {
-
-    return null;
-
-  }
-
-  const normalized =
-    query
-      .trim()
-      .toLowerCase();
-
-
-  const exact =
-    Object.keys(
-      destinationDatabase
-    ).find(
-      (key) =>
-        key.toLowerCase() ===
-        normalized
-    );
-
-
-  if (exact) {
-
-    return exact;
-
-  }
-
-
-  const partial =
-    Object.keys(
-      destinationDatabase
-    ).find(
-      (key) =>
-        key
-          .toLowerCase()
-          .includes(
-            normalized
-          )
-    );
-
-
-  return partial || null;
-
-}
-
-
-function prefillDestination(
-  destination
-) {
-
-  const topInput =
-    $("#destinationInput");
-
-  const plannerInput =
-    $("#plannerDestination");
-
-
-  if (topInput) {
-
-    topInput.value =
-      destination;
-
-  }
-
-
-  if (plannerInput) {
-
-    plannerInput.value =
-      destination;
-
-  }
-
-
-  const data =
-    destinationDatabase[
-      destination
-    ];
-
-
-  scrollToPlanner();
-
-
-  if (data) {
-
-    showToast(
-      `${destination} selected`,
-      `${data.vibe}`
-    );
-
-  } else {
-
-    showToast(
-      "Destination selected",
-      `${destination} has been added to your journey.`
-    );
-
-  }
-
-}
-
-
-function showDestinationDetails(
-  destination
-) {
-
-  const data =
-    destinationDatabase[
-      destination
-    ];
-
-
-  if (!data) {
-
-    prefillDestination(
-      destination
-    );
-
-    return;
-
-  }
-
-
-  openModal(
-    destination,
-    `${data.description} ${data.highlights}. ${data.bestFor}`
-  );
-
-}
-
-
-function showDestinations() {
-
-  openModal(
-    "Explore beyond the obvious",
-    "Choose Goa, Kerala or Rajasthan from the destination cards, or type any destination directly into the VYORA planner."
-  );
-
-}
-
-
-/* =========================================================
-   DATE SYSTEM
-========================================================= */
-
-function setupDateInputs() {
-
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
-
-
-  const fields = [
-
-    "quickStartDate",
-
-    "quickEndDate",
-
-    "plannerStartDate",
-
-    "plannerEndDate"
-
-  ];
-
-
-  fields.forEach(
-    (id) => {
-
-      const field =
-        document.getElementById(
-          id
-        );
-
-      if (field) {
-
-        field.min =
-          today;
-
-      }
-
-    }
-  );
-
-
-  const plannerStart =
-    $("#plannerStartDate");
-
-  const plannerEnd =
-    $("#plannerEndDate");
-
-  const quickStart =
-    $("#quickStartDate");
-
-  const quickEnd =
-    $("#quickEndDate");
-
-
-  plannerStart?.addEventListener(
-    "change",
-    () => {
-
-      if (
-        plannerEnd &&
-        plannerStart.value
-      ) {
-
-        plannerEnd.min =
-          plannerStart.value;
-
-      }
-
-      updatePlannerDuration();
-
-    }
-  );
-
-
-  plannerEnd?.addEventListener(
-    "change",
-    updatePlannerDuration
-  );
-
-
-  quickStart?.addEventListener(
-    "change",
-    () => {
-
-      if (
-        quickEnd &&
-        quickStart.value
-      ) {
-
-        quickEnd.min =
-          quickStart.value;
-
-      }
-
-      syncQuickDays();
-
-    }
-  );
-
-
-  quickEnd?.addEventListener(
-    "change",
-    syncQuickDays
-  );
-
-
-  updatePlannerDuration();
-
-}
-
-
-function updatePlannerDuration() {
-
-  const start =
-    $("#plannerStartDate")?.value;
-
-  const end =
-    $("#plannerEndDate")?.value;
-
-  const duration =
-    $("#plannerDuration");
-
-  const hidden =
-    $("#plannerDays");
-
-
-  const days =
-    calculateTripDays(
-      start,
-      end
-    );
-
-
-  if (!duration) {
-
-    return;
-
-  }
-
-
-  if (!start || !end) {
-
-    duration.textContent =
-      "Choose dates";
-
-    if (hidden) {
-
-      hidden.value =
-        "1";
-
-    }
-
-    return;
-
-  }
-
-
-  if (days <= 0) {
-
-    duration.textContent =
-      "Check your dates";
-
-    if (hidden) {
-
-      hidden.value =
-        "1";
-
-    }
-
-    return;
-
-  }
-
-
-  duration.textContent =
-    `${days} day${
-      days === 1
-        ? ""
-        : "s"
-    }`;
-
-
-  if (hidden) {
-
-    hidden.value =
-      String(days);
-
-  }
-
-}
-
-
-function syncQuickDays() {
-
-  const start =
-    $("#quickStartDate")?.value;
-
-  const end =
-    $("#quickEndDate")?.value;
-
-  const hidden =
-    $("#daysInput");
-
-
-  const days =
-    calculateTripDays(
-      start,
-      end
-    );
-
-
-  if (hidden) {
-
-    hidden.value =
-      days > 0
-        ? String(days)
-        : "1";
-
-  }
-
-}
-
-
-/* =========================================================
-   QUICK SEARCH
-========================================================= */
-
-function generateTrip() {
-
-  const destination =
-    $("#destinationInput")
-      ?.value
-      .trim();
-
-  const startDate =
-    $("#quickStartDate")
-      ?.value;
-
-  const endDate =
-    $("#quickEndDate")
-      ?.value;
-
-  const budget =
-    Number(
-      $("#budgetInput")
-        ?.value || 0
-    );
-
-
-  if (!destination) {
-
-    showToast(
-      "Destination needed",
-      "Tell VYORA where you want to go first."
-    );
-
-    $("#destinationInput")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  if (!startDate || !endDate) {
-
-    showToast(
-      "Dates needed",
-      "Choose your start and end dates."
-    );
-
-    $("#quickStartDate")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  const days =
-    calculateTripDays(
-      startDate,
-      endDate
-    );
-
-
-  if (days <= 0) {
-
-    showToast(
-      "Invalid dates",
-      "Your end date must be after your start date."
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isFinite(budget) ||
-    budget <= 0
-  ) {
-
-    showToast(
-      "Budget needed",
-      "Enter any amount you want to spend."
-    );
-
-    $("#budgetInput")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  $("#plannerDestination")
-    .value =
-    destination;
-
-  $("#plannerStartDate")
-    .value =
-    startDate;
-
-  $("#plannerEndDate")
-    .value =
-    endDate;
-
-  $("#plannerBudget")
-    .value =
-    budget;
-
-  $("#plannerDays")
-    .value =
-    days;
-
-
-  updatePlannerDuration();
-
-  scrollToPlanner();
-
-
-  setTimeout(
-    generatePlanner,
-    350
-  );
-
-}
-
-
-/* =========================================================
-   PLANNER
-========================================================= */
-
-function generatePlanner() {
-
-  const destination =
-    $("#plannerDestination")
-      ?.value
-      .trim();
-
-  const startDate =
-    $("#plannerStartDate")
-      ?.value;
-
-  const endDate =
-    $("#plannerEndDate")
-      ?.value;
-
-  const budget =
-    Number(
-      $("#plannerBudget")
-        ?.value || 0
-    );
-
-  const interests =
-    getSelectedInterests();
-
-
-  if (!destination) {
-
-    showToast(
-      "Destination needed",
-      "Tell VYORA where you're going."
-    );
-
-    $("#plannerDestination")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  if (!startDate || !endDate) {
-
-    showToast(
-      "Travel dates needed",
-      "Choose your start and end dates."
-    );
-
-    $("#plannerStartDate")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  const days =
-    calculateTripDays(
-      startDate,
-      endDate
-    );
-
-
-  if (days <= 0) {
-
-    showToast(
-      "Invalid dates",
-      "Your end date must be on or after the start date."
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !Number.isFinite(budget) ||
-    budget <= 0
-  ) {
-
-    showToast(
-      "Budget needed",
-      "Enter your own travel budget."
-    );
-
-    $("#plannerBudget")
-      ?.focus();
-
-    return;
-
-  }
-
-
-  currentJourney = {
-
-    tripId:
-      currentJourney.tripId || null,
-
-    destination,
-
-    startDate,
-
-    endDate,
-
-    days,
-
-    budget,
-
-    interests
-
-  };
-
-
-  const button =
-    $("#generateBtn");
-
-  const result =
-    $("#plannerResult");
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.classList.add(
-      "loading"
-    );
-
-    button.innerHTML = `
-
-      <span>✦</span>
-
-      <span>
-        VYORA is thinking...
-      </span>
-
-      <span>•</span>
-
-    `;
-
-  }
-
-
-  if (result) {
-
-    result.className =
-      "planner-result visible";
-
-    result.innerHTML = `
-
-      <div class="thinking">
-
-        <span>✦</span>
 
         <div>
 
-          <strong>
-            Designing your journey...
-          </strong>
+          <div class="brand-name">
+            VYORA
+          </div>
 
-          <div class="dots">
-
-            <span></span>
-            <span></span>
-            <span></span>
-
+          <div class="brand-tag">
+            Travel Beyond the Ordinary.
           </div>
 
         </div>
 
+      </a>
+
+
+      <nav
+        class="nav-links"
+        id="navLinks"
+      >
+
+        <a
+          href="#explore"
+          class="nav-link active"
+        >
+          Explore
+        </a>
+
+
+        <a
+          href="#planner"
+          class="nav-link"
+        >
+          AI Planner
+        </a>
+
+
+        <a
+          href="#hotels"
+          class="nav-link"
+        >
+          Hotels
+        </a>
+
+
+        <a
+          href="#experiences"
+          class="nav-link"
+        >
+          Experiences
+        </a>
+
+
+        <a
+          href="#myJourneys"
+          class="nav-link nav-my-journeys"
+          id="myJourneysNav"
+          hidden
+        >
+          My Journeys
+        </a>
+
+      </nav>
+
+
+      <!-- TOP AUTH -->
+
+      <div class="nav-actions">
+
+        <div
+          class="nav-user"
+          id="navUser"
+          hidden
+        >
+          <span class="nav-user-dot"></span>
+
+          <span
+            id="navUsername"
+          >
+            Traveller
+          </span>
+        </div>
+
+
+        <button
+          class="login-btn"
+          id="navLoginButton"
+          type="button"
+          onclick="openAuthModal('login')"
+        >
+          Log in
+        </button>
+
+
+        <button
+          class="nav-cta magnetic"
+          id="navStartButton"
+          type="button"
+          onclick="openAuthModal('register')"
+        >
+          Get started
+          <span>✦</span>
+        </button>
+
       </div>
 
-    `;
 
-  }
+      <!-- MOBILE BUTTON -->
 
+      <button
+        class="menu-btn"
+        id="menuBtn"
+        type="button"
+        onclick="toggleMenu()"
+        aria-label="Open navigation"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
 
-  const messages = [
-
-    "Reading your dates...",
-
-    "Understanding your vibe...",
-
-    "Finding experiences...",
-
-    "Optimizing your route...",
-
-    "Balancing your budget...",
-
-    "Your journey is almost ready..."
-
-  ];
+    </header>
 
 
-  let step = 0;
+    <!-- =====================================================
+         MOBILE MENU
+    ====================================================== -->
+
+    <div
+      class="mobile-menu"
+      id="mobileMenu"
+    >
+
+      <a
+        href="#explore"
+        onclick="closeMobileMenu()"
+      >
+        Explore
+      </a>
 
 
-  const interval =
-    setInterval(
-      () => {
+      <a
+        href="#planner"
+        onclick="closeMobileMenu()"
+      >
+        AI Planner
+      </a>
 
-        if (
-          result &&
-          step <
-            messages.length
-        ) {
 
-          result.innerHTML = `
+      <a
+        href="#hotels"
+        onclick="closeMobileMenu()"
+      >
+        Hotels
+      </a>
 
-            <div class="thinking">
 
-              <span>✦</span>
+      <a
+        href="#experiences"
+        onclick="closeMobileMenu()"
+      >
+        Experiences
+      </a>
 
-              <div>
+
+      <a
+        href="#myJourneys"
+        id="mobileMyJourneys"
+        hidden
+        onclick="closeMobileMenu()"
+      >
+        My Journeys
+      </a>
+
+
+      <button
+        type="button"
+        onclick="
+          openAuthModal('login');
+          closeMobileMenu();
+        "
+      >
+        Log in
+      </button>
+
+
+      <button
+        type="button"
+        onclick="
+          openAuthModal('register');
+          closeMobileMenu();
+        "
+      >
+        Create account ✦
+      </button>
+
+
+      <button
+        type="button"
+        onclick="
+          scrollToPlanner();
+          closeMobileMenu();
+        "
+      >
+        Plan my trip →
+      </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main>
+
+
+      <!-- ===================================================
+           HERO
+      ==================================================== -->
+
+      <section
+        class="hero"
+        id="home"
+      >
+
+        <div class="hero-content reveal">
+
+
+          <div class="eyebrow">
+
+            <span class="pulse"></span>
+
+            AI-POWERED TRAVEL
+
+            <span class="eyebrow-line"></span>
+
+          </div>
+
+
+          <h1>
+
+            Your journey.
+
+            <span>
+              Reimagined.
+            </span>
+
+          </h1>
+
+
+          <p class="hero-text">
+
+            Stop planning trips like spreadsheets.
+
+            Tell VYORA your destination, your dates,
+            your budget and your vibe —
+            we'll shape the journey around you.
+
+          </p>
+
+
+          <div class="hero-actions">
+
+            <button
+              class="primary-btn magnetic"
+              type="button"
+              onclick="scrollToPlanner()"
+            >
+
+              ✦
+              Plan My Trip
+
+            </button>
+
+
+            <button
+              class="secondary-btn"
+              type="button"
+              onclick="scrollToExplore()"
+            >
+
+              Explore destinations
+              →
+
+            </button>
+
+          </div>
+
+
+          <div class="hero-trust">
+
+            <div class="avatars">
+
+              <span>
+                ✈
+              </span>
+
+              <span>
+                ◉
+              </span>
+
+              <span>
+                ⌖
+              </span>
+
+            </div>
+
+
+            <div>
+
+              <strong>
+                Travel differently.
+              </strong>
+
+              <small>
+                Personalized by intelligence.
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div class="hero-mini-stats">
+
+
+            <div>
+
+              <strong data-counter="120">
+                0+
+              </strong>
+
+              <span>
+                destinations
+              </span>
+
+            </div>
+
+
+            <div>
+
+              <strong data-counter="35">
+                0+
+              </strong>
+
+              <span>
+                experience types
+              </span>
+
+            </div>
+
+
+            <div>
+
+              <strong data-counter="24">
+                0+
+              </strong>
+
+              <span>
+                travel signals
+              </span>
+
+            </div>
+
+
+          </div>
+
+
+        </div>
+
+
+        <!-- HERO VISUAL -->
+
+        <div class="hero-visual reveal reveal-delay">
+
+
+          <div class="glow"></div>
+
+          <div class="glow glow-two"></div>
+
+
+          <div class="floating-orb orb-one"></div>
+
+          <div class="floating-orb orb-two"></div>
+
+
+          <div
+            class="destination-card"
+            id="heroCard"
+          >
+
+
+            <div class="destination-image">
+
+              <div class="image-overlay"></div>
+
+
+              <div class="location-label">
+
+                <span>
+                  ●
+                </span>
+
+                Kerala, India
+
+              </div>
+
+
+              <div class="image-meta">
+
+                <span>
+                  AI CURATED
+                </span>
+
+                <span>
+                  CUSTOM DATES
+                </span>
+
+              </div>
+
+
+              <div class="image-title">
+
+                Where will you<br>
 
                 <strong>
-                  ${messages[step]}
+                  go next?
                 </strong>
-
-                <div class="dots">
-
-                  <span></span>
-                  <span></span>
-                  <span></span>
-
-                </div>
 
               </div>
 
             </div>
 
-          `;
 
-          step++;
+            <div class="floating-ai">
 
-        }
-
-      },
-      420
-    );
+              <div class="ai-icon">
+                ✦
+              </div>
 
 
-  setTimeout(
-    () => {
+              <div>
 
-      clearInterval(
-        interval
-      );
+                <small>
+                  VYORA AI
+                </small>
+
+                <strong>
+                  Journey ready.
+                </strong>
+
+              </div>
 
 
-      if (result) {
+              <span class="status-dot"></span>
 
-        result.innerHTML = `
+            </div>
 
-          <div class="journey-ready">
+
+            <div class="route-card">
+
+              <div class="route-top">
+
+                <small>
+                  SMART ROUTE
+                </small>
+
+                <span>
+                  94% fit
+                </span>
+
+              </div>
+
+
+              <div class="route-line">
+
+                <span></span>
+
+                <div></div>
+
+                <span></span>
+
+              </div>
+
+
+              <div class="route-bottom">
+
+                <small>
+                  KOCHI
+                </small>
+
+                <small>
+                  MUNNAR
+                </small>
+
+                <small>
+                  ALLEPPEY
+                </small>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           QUICK SEARCH
+      ==================================================== -->
+
+      <section
+        class="search-section reveal"
+      >
+
+        <div class="search-box">
+
+
+          <!-- DESTINATION -->
+
+          <div class="search-field">
+
+            <span class="field-icon">
+              ⌕
+            </span>
+
+
+            <div>
+
+              <small>
+                DESTINATION
+              </small>
+
+
+              <input
+                id="destinationInput"
+                type="text"
+                placeholder="Where do you want to go?"
+                autocomplete="off"
+              >
+
+            </div>
+
+          </div>
+
+
+          <div class="divider"></div>
+
+
+          <!-- DATES -->
+
+          <div class="search-field">
+
+            <span class="field-icon">
+              ◷
+            </span>
+
+
+            <div class="date-range-field">
+
+              <small>
+                DATES
+              </small>
+
+
+              <div class="date-range-inputs">
+
+                <input
+                  id="quickStartDate"
+                  type="date"
+                  aria-label="Start date"
+                >
+
+
+                <span>
+                  →
+                </span>
+
+
+                <input
+                  id="quickEndDate"
+                  type="date"
+                  aria-label="End date"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="divider"></div>
+
+
+          <!-- BUDGET -->
+
+          <div class="search-field">
+
+            <span class="field-icon">
+              ₹
+            </span>
+
+
+            <div>
+
+              <small>
+                YOUR BUDGET
+              </small>
+
+
+              <input
+                id="budgetInput"
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                placeholder="Any amount"
+                autocomplete="off"
+              >
+
+            </div>
+
+          </div>
+
+
+          <input
+            id="daysInput"
+            type="hidden"
+            value="1"
+          >
+
+
+          <button
+            class="search-btn magnetic"
+            type="button"
+            onclick="generateTrip()"
+          >
+
+            ✦
+            Create journey
+
+          </button>
+
+
+        </div>
+
+
+        <div class="search-note">
+
+          <span>
+            ✦
+          </span>
+
+          No fixed duration.
+          No fixed budget.
+          Your trip, your rules.
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           EXPLORE
+      ==================================================== -->
+
+      <section
+        class="section"
+        id="explore"
+      >
+
+
+        <div class="section-heading reveal">
+
+
+          <div>
+
+            <span class="section-label">
+              01 / DISCOVER
+            </span>
+
+
+            <h2>
+
+              Places worth<br>
+
+              <em>
+                remembering.
+              </em>
+
+            </h2>
+
+          </div>
+
+
+          <button
+            class="text-btn"
+            type="button"
+            onclick="showDestinations()"
+          >
+
+            View all destinations
+            →
+
+          </button>
+
+
+        </div>
+
+
+        <div class="destination-grid">
+
+
+          <article
+            class="place-card reveal tilt-card"
+          >
+
+            <div class="place-bg bg-goa"></div>
+
+            <div class="card-shine"></div>
+
+
+            <div class="place-top">
+
+              <span>
+                01
+              </span>
+
+              <span>
+                POPULAR
+              </span>
+
+            </div>
+
+
+            <div class="place-info">
+
+              <span>
+                India
+              </span>
+
+
+              <h3>
+                Goa
+              </h3>
+
+
+              <p>
+                Beaches · Culture · Nightlife
+              </p>
+
+            </div>
+
+
+            <button
+              class="card-arrow"
+              type="button"
+              onclick="prefillDestination('Goa')"
+              aria-label="Plan Goa trip"
+            >
+              ↗
+            </button>
+
+
+          </article>
+
+
+          <article
+            class="place-card reveal reveal-delay tilt-card"
+          >
+
+            <div class="place-bg bg-kerala"></div>
+
+            <div class="card-shine"></div>
+
+
+            <div class="place-top">
+
+              <span>
+                02
+              </span>
+
+              <span>
+                ESCAPE
+              </span>
+
+            </div>
+
+
+            <div class="place-info">
+
+              <span>
+                India
+              </span>
+
+
+              <h3>
+                Kerala
+              </h3>
+
+
+              <p>
+                Backwaters · Nature
+              </p>
+
+            </div>
+
+
+            <button
+              class="card-arrow"
+              type="button"
+              onclick="prefillDestination('Kerala')"
+              aria-label="Plan Kerala trip"
+            >
+              ↗
+            </button>
+
+
+          </article>
+
+
+          <article
+            class="place-card reveal reveal-delay-2 tilt-card"
+          >
+
+            <div class="place-bg bg-rajasthan"></div>
+
+            <div class="card-shine"></div>
+
+
+            <div class="place-top">
+
+              <span>
+                03
+              </span>
+
+              <span>
+                HERITAGE
+              </span>
+
+            </div>
+
+
+            <div class="place-info">
+
+              <span>
+                India
+              </span>
+
+
+              <h3>
+                Rajasthan
+              </h3>
+
+
+              <p>
+                History · Heritage
+              </p>
+
+            </div>
+
+
+            <button
+              class="card-arrow"
+              type="button"
+              onclick="prefillDestination('Rajasthan')"
+              aria-label="Plan Rajasthan trip"
+            >
+              ↗
+            </button>
+
+
+          </article>
+
+
+        </div>
+
+
+        <div class="destination-strip reveal">
+
+          <span>
+            CURATED FOR CURIOUS TRAVELLERS
+          </span>
+
+          <div></div>
+
+          <span>
+            DESTINATIONS • EXPERIENCES • STAYS • ROUTES
+          </span>
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           AI PLANNER
+      ==================================================== -->
+
+      <section
+        class="planner-section"
+        id="planner"
+      >
+
+
+        <div class="planner-copy reveal">
+
+
+          <span class="section-label">
+            02 / PERSONAL TRAVEL INTELLIGENCE
+          </span>
+
+
+          <h2>
+
+            Don't plan a trip.
+
+            <em>
+              Design a journey.
+            </em>
+
+          </h2>
+
+
+          <p>
+
+            Tell VYORA where you're going,
+            when you're going,
+            what you love and how much
+            you want to spend.
+
+            The journey adapts around your inputs.
+
+          </p>
+
+
+          <div class="feature-list">
+
+
+            <div class="feature-row">
+
+              <span>
+                01
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Understands your vibe
+                </strong>
+
+
+                <p>
+                  Interests, pace, dates and budget.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div class="feature-row">
+
+              <span>
+                02
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Builds the flow
+                </strong>
+
+
+                <p>
+                  Places, routes, experiences and stays.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div class="feature-row">
+
+              <span>
+                03
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Adapts instantly
+                </strong>
+
+
+                <p>
+                  Change anything. Regenerate everything.
+                </p>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <div class="planner-tech-note">
+
+            ✦
+            Prototype intelligence layer · API ready
+
+          </div>
+
+
+        </div>
+
+
+        <div
+          class="planner-card reveal reveal-delay"
+        >
+
+
+          <div class="planner-top">
+
+
+            <div>
+
+              <small>
+                VYORA AI PLANNER
+              </small>
+
+
+              <h3>
+                Build your perfect route.
+              </h3>
+
+            </div>
+
+
+            <span class="ai-badge">
+              AI
+            </span>
+
+
+          </div>
+
+
+          <label for="plannerDestination">
+            Destination
+          </label>
+
+
+          <div class="input-wrap">
+
+            <span>
+              ⌖
+            </span>
+
+
+            <input
+              id="plannerDestination"
+              type="text"
+              placeholder="e.g. Kerala, Goa, Japan..."
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="planner-grid">
+
+
+            <div>
+
+              <label for="plannerStartDate">
+                Start date
+              </label>
+
+
+              <div class="select-wrap">
+
+                <span>
+                  📅
+                </span>
+
+
+                <input
+                  id="plannerStartDate"
+                  type="date"
+                  aria-label="Trip start date"
+                >
+
+              </div>
+
+            </div>
+
+
+            <div>
+
+              <label for="plannerEndDate">
+                End date
+              </label>
+
+
+              <div class="select-wrap">
+
+                <span>
+                  📅
+                </span>
+
+
+                <input
+                  id="plannerEndDate"
+                  type="date"
+                  aria-label="Trip end date"
+                >
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <div class="planner-grid">
+
+
+            <div>
+
+              <label>
+                Trip duration
+              </label>
+
+
+              <div
+                class="select-wrap"
+                id="durationDisplay"
+              >
+
+                <span>
+                  ◷
+                </span>
+
+
+                <strong id="plannerDuration">
+                  Choose dates
+                </strong>
+
+              </div>
+
+
+              <input
+                id="plannerDays"
+                type="hidden"
+                value="1"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="plannerBudget">
+                Your budget
+              </label>
+
+
+              <div class="select-wrap">
+
+                <span>
+                  ₹
+                </span>
+
+
+                <input
+                  id="plannerBudget"
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="Any amount"
+                  autocomplete="off"
+                >
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <div class="budget-hint">
+
+            No preset.
+            Enter exactly what you're comfortable spending.
+
+          </div>
+
+
+          <label>
+            What's your vibe?
+          </label>
+
+
+          <div class="interest-list">
+
+
+            <button
+              class="interest active"
+              data-interest="Beaches"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Beaches
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Food"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Food
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Adventure"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Adventure
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Culture"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Culture
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Nature"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Nature
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="History"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              History
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Shopping"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Shopping
+            </button>
+
+
+            <button
+              class="interest"
+              data-interest="Nightlife"
+              type="button"
+              onclick="toggleInterest(this)"
+            >
+              Nightlife
+            </button>
+
+
+          </div>
+
+
+          <button
+            class="generate-btn magnetic"
+            id="generateBtn"
+            type="button"
+            onclick="generatePlanner()"
+          >
 
             <span>
               ✦
             </span>
 
-            <div>
 
-              <strong>
-                Your journey is ready.
-              </strong>
+            <span>
+              Generate my journey
+            </span>
 
-              <p>
 
-                ${escapeHTML(
-                  destination
-                )}
+            <span>
+              →
+            </span>
 
-                ·
+          </button>
 
-                ${formatDate(
-                  startDate
-                )}
 
-                →
+          <div
+            class="planner-result"
+            id="plannerResult"
+          ></div>
 
-                ${formatDate(
-                  endDate
-                )}
 
-                ·
+        </div>
 
-                ${days}
-                day${
-                  days === 1
-                    ? ""
-                    : "s"
-                }
 
-              </p>
+      </section>
 
-              <small>
 
-                ${
-                  interests.length
-                    ? escapeHTML(
-                        interests
-                          .slice(
-                            0,
-                            4
-                          )
-                          .join(
-                            " · "
-                          )
-                      )
-                    : "Balanced exploration"
-                }
+      <!-- ===================================================
+           ITINERARY
+      ==================================================== -->
 
-              </small>
-
-            </div>
-
-          </div>
-
-        `;
-
-      }
-
-
-      if (button) {
-
-        button.disabled =
-          false;
-
-        button.classList.remove(
-          "loading"
-        );
-
-        button.innerHTML = `
-
-          <span>✦</span>
-
-          <span>
-            Regenerate my journey
-          </span>
-
-          <span>→</span>
-
-        `;
-
-      }
-
-
-      renderItinerary();
-
-      updateJourneyHeader();
-
-      updateBudget();
-
-
-      $("#itinerary")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-
-
-      showToast(
-        "Journey ready",
-        `${destination} has been shaped around your choices.`
-      );
-
-
-    },
-    2900
-  );
-
-}
-
-
-/* =========================================================
-   ITINERARY
-========================================================= */
-
-function createActivityHTML(
-  period,
-  activity
-) {
-
-  return `
-
-    <div class="activity">
-
-      <div class="activity-time">
-
-        <strong>
-          ${escapeHTML(period)}
-        </strong>
-
-        <span>
-          ${escapeHTML(activity.time)}
-        </span>
-
-      </div>
-
-
-      <div class="activity-info">
-
-        <strong>
-          ${escapeHTML(activity.name)}
-        </strong>
-
-        <p>
-          ${escapeHTML(activity.description)}
-        </p>
-
-      </div>
-
-
-      <div class="activity-meta">
-
-        <strong>
-          ${formatCurrency(activity.cost)}
-        </strong>
-
-        <span>
-          ${escapeHTML(activity.travel)}
-        </span>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-
-function renderItinerary() {
-
-  const timeline =
-    $("#itineraryTimeline");
-
-
-  if (!timeline) {
-
-    return;
-
-  }
-
-
-  if (
-    !currentJourney.destination ||
-    !currentJourney.startDate ||
-    !currentJourney.days
-  ) {
-
-    timeline.innerHTML = `
-
-      <div class="empty-itinerary">
-
-        <div>✦</div>
-
-        <strong>
-          Your itinerary will appear here.
-        </strong>
-
-        <p>
-          Pick your destination,
-          dates and vibe to begin.
-        </p>
-
-      </div>
-
-    `;
-
-    return;
-
-  }
-
-
-  let html =
-    "";
-
-
-  for (
-    let day = 1;
-    day <= currentJourney.days;
-    day++
-  ) {
-
-    const morning =
-      getActivity(
-        "morning",
-        day - 1
-      );
-
-
-    const afternoon =
-      getActivity(
-        "afternoon",
-        day - 1
-      );
-
-
-    const evening =
-      getActivity(
-        "evening",
-        day - 1
-      );
-
-
-    const actualDate =
-      getDateAfter(
-        currentJourney.startDate,
-        day - 1
-      );
-
-
-    html += `
-
-      <article
-        class="day-card reveal visible"
+      <section
+        class="section itinerary-section"
+        id="itinerary"
       >
 
-        <div class="day-header">
+
+        <div class="section-heading reveal">
+
 
           <div>
 
-            <strong>
-              DAY
-              ${String(day)
-                .padStart(
-                  2,
-                  "0"
-                )}
+            <span class="section-label">
+              03 / YOUR JOURNEY
+            </span>
+
+
+            <h2>
+
+              A journey built<br>
+
+              <em>
+                around you.
+              </em>
+
+            </h2>
+
+          </div>
+
+
+          <div class="journey-actions">
+
+
+            <button
+              type="button"
+              onclick="saveTrip()"
+            >
+              ♡ Save trip
+            </button>
+
+
+            <button
+              type="button"
+              onclick="shareTrip()"
+            >
+              ↗ Share
+            </button>
+
+
+          </div>
+
+
+        </div>
+
+
+        <div class="journey-banner reveal">
+
+
+          <div>
+
+            <span>
+              VYORA JOURNEY
+            </span>
+
+
+            <strong id="journeyTitle">
+              Your next adventure
             </strong>
 
-            <small
-              class="itinerary-calendar-date"
+
+            <small id="journeyMeta">
+              Choose your destination and dates to begin.
+            </small>
+
+
+          </div>
+
+
+          <div class="journey-score">
+
+            <span>
+              AI FIT
+            </span>
+
+
+            <strong id="journeyScore">
+              —
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+        <div class="itinerary-layout">
+
+
+          <div
+            class="timeline"
+            id="itineraryTimeline"
+          >
+
+
+            <div class="empty-itinerary">
+
+              <div>
+                ✦
+              </div>
+
+
+              <strong>
+                Your itinerary will appear here.
+              </strong>
+
+
+              <p>
+                Pick your dates, budget and vibe.
+                VYORA will shape the route.
+              </p>
+
+            </div>
+
+
+          </div>
+
+
+          <aside
+            class="budget-card reveal reveal-delay"
+          >
+
+
+            <div class="budget-card-top">
+
+
+              <div>
+
+                <span>
+                  ESTIMATED JOURNEY COST
+                </span>
+
+
+                <strong id="budgetTotal">
+                  ₹0
+                </strong>
+
+              </div>
+
+
+              <div
+                class="budget-ring"
+                id="budgetRing"
+              >
+
+                <span id="budgetPercent">
+                  0%
+                </span>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="budget-line">
+
+
+              <div>
+
+                <span>
+                  Accommodation
+                </span>
+
+
+                <strong id="budgetHotel">
+                  ₹0
+                </strong>
+
+              </div>
+
+
+              <div class="progress">
+
+                <span
+                  id="hotelProgress"
+                ></span>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="budget-line">
+
+
+              <div>
+
+                <span>
+                  Food
+                </span>
+
+
+                <strong id="budgetFood">
+                  ₹0
+                </strong>
+
+              </div>
+
+
+              <div class="progress">
+
+                <span
+                  id="foodProgress"
+                ></span>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="budget-line">
+
+
+              <div>
+
+                <span>
+                  Transport
+                </span>
+
+
+                <strong id="budgetTransport">
+                  ₹0
+                </strong>
+
+              </div>
+
+
+              <div class="progress">
+
+                <span
+                  id="transportProgress"
+                ></span>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="budget-line">
+
+
+              <div>
+
+                <span>
+                  Activities
+                </span>
+
+
+                <strong id="budgetActivities">
+                  ₹0
+                </strong>
+
+              </div>
+
+
+              <div class="progress">
+
+                <span
+                  id="activitiesProgress"
+                ></span>
+
+              </div>
+
+
+            </div>
+
+
+            <div
+              class="budget-note"
+              id="budgetNote"
             >
-              ${formatDate(actualDate)}
+              Enter your budget to see VYORA's cost breakdown.
+
+            </div>
+
+
+          </aside>
+
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           MY JOURNEYS
+      ==================================================== -->
+
+      <section
+        class="section my-journeys-section"
+        id="myJourneys"
+        hidden
+      >
+
+        <div class="section-heading reveal">
+
+          <div>
+
+            <span class="section-label">
+              04 / YOUR COLLECTION
+            </span>
+
+
+            <h2>
+
+              Journeys worth<br>
+
+              <em>
+                coming back to.
+              </em>
+
+            </h2>
+
+          </div>
+
+
+          <button
+            class="text-btn"
+            type="button"
+            onclick="refreshMyJourneys()"
+          >
+            Refresh journeys →
+          </button>
+
+        </div>
+
+
+        <div
+          class="my-journeys-status"
+          id="myJourneysLoading"
+          hidden
+        >
+
+          <span class="journey-loader-dot"></span>
+
+          Loading your journeys...
+
+        </div>
+
+
+        <div
+          class="my-journeys-grid"
+          id="myJourneysGrid"
+        ></div>
+
+
+        <div
+          class="my-journeys-empty"
+          id="myJourneysEmpty"
+          hidden
+        >
+
+          <div class="my-journeys-empty-icon">
+            ✦
+          </div>
+
+
+          <strong>
+            Your collection is waiting.
+          </strong>
+
+
+          <p>
+            Generate and save your first VYORA journey.
+            It will appear here automatically.
+          </p>
+
+
+          <button
+            class="primary-btn"
+            type="button"
+            onclick="scrollToPlanner()"
+          >
+            Design a journey →
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           HOTELS
+      ==================================================== -->
+
+      <section
+        class="section"
+        id="hotels"
+      >
+
+
+        <div class="section-heading reveal">
+
+
+          <div>
+
+            <span class="section-label">
+              05 / STAY SMARTER
+            </span>
+
+
+            <h2>
+
+              Hotels chosen<br>
+
+              <em>
+                for your vibe.
+              </em>
+
+            </h2>
+
+          </div>
+
+
+          <button
+            class="text-btn"
+            type="button"
+            onclick="showPrototypeNotice()"
+          >
+            Explore hotels →
+          </button>
+
+
+        </div>
+
+
+        <div class="hotel-grid">
+
+
+          <article
+            class="hotel-card reveal tilt-card"
+          >
+
+
+            <div class="hotel-image hotel-one">
+
+
+              <span class="match">
+                94% AI MATCH
+              </span>
+
+
+              <button
+                class="heart-btn"
+                type="button"
+                onclick="toggleFavorite(this)"
+              >
+                ♡
+              </button>
+
+
+              <div class="hotel-overlay">
+                Beach + nightlife
+              </div>
+
+
+            </div>
+
+
+            <div class="hotel-content">
+
+
+              <div class="hotel-location">
+                GOA · INDIA
+              </div>
+
+
+              <h3>
+                The Fern Coast
+              </h3>
+
+
+              <p class="rating">
+                ★★★★★
+                <span>
+                  4.8
+                </span>
+              </p>
+
+
+              <div class="recommendation">
+
+
+                <span>
+                  ✦
+                </span>
+
+
+                <div>
+
+                  <small>
+                    WHY VYORA RECOMMENDS IT
+                  </small>
+
+
+                  <p>
+                    Strong fit for relaxed days,
+                    beaches and evening experiences.
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+              <div class="hotel-bottom">
+
+
+                <strong>
+
+                  ₹2,499
+
+                  <small>
+                    / night
+                  </small>
+
+                </strong>
+
+
+                <button
+                  type="button"
+                  onclick="showHotelDemo('The Fern Coast')"
+                >
+                  View →
+                </button>
+
+
+              </div>
+
+
+            </div>
+
+
+          </article>
+
+
+          <article
+            class="hotel-card reveal reveal-delay tilt-card"
+          >
+
+
+            <div class="hotel-image hotel-two">
+
+
+              <span class="match">
+                91% AI MATCH
+              </span>
+
+
+              <button
+                class="heart-btn"
+                type="button"
+                onclick="toggleFavorite(this)"
+              >
+                ♡
+              </button>
+
+
+              <div class="hotel-overlay">
+                Nature + calm
+              </div>
+
+
+            </div>
+
+
+            <div class="hotel-content">
+
+
+              <div class="hotel-location">
+                KERALA · INDIA
+              </div>
+
+
+              <h3>
+                Lakeview Retreat
+              </h3>
+
+
+              <p class="rating">
+                ★★★★★
+                <span>
+                  4.7
+                </span>
+              </p>
+
+
+              <div class="recommendation">
+
+
+                <span>
+                  ✦
+                </span>
+
+
+                <div>
+
+                  <small>
+                    WHY VYORA RECOMMENDS IT
+                  </small>
+
+
+                  <p>
+                    Ideal for slower travel,
+                    greenery, backwaters
+                    and quiet mornings.
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+              <div class="hotel-bottom">
+
+
+                <strong>
+
+                  ₹3,200
+
+                  <small>
+                    / night
+                  </small>
+
+                </strong>
+
+
+                <button
+                  type="button"
+                  onclick="showHotelDemo('Lakeview Retreat')"
+                >
+                  View →
+                </button>
+
+
+              </div>
+
+
+            </div>
+
+
+          </article>
+
+
+          <article
+            class="hotel-card reveal reveal-delay-2 tilt-card"
+          >
+
+
+            <div class="hotel-image hotel-three">
+
+
+              <span class="match">
+                89% AI MATCH
+              </span>
+
+
+              <button
+                class="heart-btn"
+                type="button"
+                onclick="toggleFavorite(this)"
+              >
+                ♡
+              </button>
+
+
+              <div class="hotel-overlay">
+                Heritage + culture
+              </div>
+
+
+            </div>
+
+
+            <div class="hotel-content">
+
+
+              <div class="hotel-location">
+                RAJASTHAN · INDIA
+              </div>
+
+
+              <h3>
+                Heritage Palace
+              </h3>
+
+
+              <p class="rating">
+                ★★★★★
+                <span>
+                  4.9
+                </span>
+              </p>
+
+
+              <div class="recommendation">
+
+
+                <span>
+                  ✦
+                </span>
+
+
+                <div>
+
+                  <small>
+                    WHY VYORA RECOMMENDS IT
+                  </small>
+
+
+                  <p>
+                    A strong match for history,
+                    architecture and culture.
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+              <div class="hotel-bottom">
+
+
+                <strong>
+
+                  ₹4,100
+
+                  <small>
+                    / night
+                  </small>
+
+                </strong>
+
+
+                <button
+                  type="button"
+                  onclick="showHotelDemo('Heritage Palace')"
+                >
+                  View →
+                </button>
+
+
+              </div>
+
+
+            </div>
+
+
+          </article>
+
+
+        </div>
+
+
+        <div class="prototype-bar reveal">
+
+
+          <span>
+            ✦
+          </span>
+
+
+          Live hotel availability,
+          dynamic pricing and booking
+          can plug into secure APIs.
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           SMART MAP
+      ==================================================== -->
+
+      <section class="map-section">
+
+
+        <div class="map-copy reveal">
+
+
+          <span class="section-label">
+            06 / SMART LOCATION
+          </span>
+
+
+          <h2>
+
+            See your journey<br>
+
+            <em>
+              take shape.
+            </em>
+
+          </h2>
+
+
+          <p>
+
+            Hotels, attractions,
+            experiences and routes —
+            connected around the journey.
+
+          </p>
+
+
+          <div class="map-legend">
+
+
+            <span>
+              <i class="legend-dot hotel"></i>
+              Hotels
+            </span>
+
+
+            <span>
+              <i class="legend-dot place"></i>
+              Attractions
+            </span>
+
+
+            <span>
+              <i class="legend-dot food"></i>
+              Experiences
+            </span>
+
+
+          </div>
+
+
+        </div>
+
+
+        <div
+          class="demo-map reveal reveal-delay"
+        >
+
+
+          <div class="map-grid"></div>
+
+
+          <div class="map-road road-a"></div>
+
+          <div class="map-road road-b"></div>
+
+          <div class="map-road road-c"></div>
+
+
+          <div class="map-label label-a">
+            Old Town
+          </div>
+
+
+          <div class="map-label label-b">
+            Lake District
+          </div>
+
+
+          <div class="map-label label-c">
+            Market Street
+          </div>
+
+
+          <button
+            class="map-pin pin-a"
+            type="button"
+            onclick="mapPin('Hotel')"
+          >
+            ⌂
+          </button>
+
+
+          <button
+            class="map-pin pin-b"
+            type="button"
+            onclick="mapPin('Attraction')"
+          >
+            ◆
+          </button>
+
+
+          <button
+            class="map-pin pin-c"
+            type="button"
+            onclick="mapPin('Experience')"
+          >
+            ✦
+          </button>
+
+
+          <div class="map-route-line"></div>
+
+
+          <div class="map-status">
+
+
+            <span class="status-pulse"></span>
+
+            DEMO MAP · API READY
+
+
+          </div>
+
+
+        </div>
+
+
+      </section>
+
+
+      <!-- ===================================================
+           EXPERIENCES
+      ==================================================== -->
+
+      <section
+        class="experience-section"
+        id="experiences"
+      >
+
+
+        <div class="experience-copy reveal">
+
+
+          <span class="section-label">
+            07 / BEYOND TOURISM
+          </span>
+
+
+          <h2>
+
+            Find the places<br>
+
+            <em>
+              locals know.
+            </em>
+
+          </h2>
+
+
+          <p>
+
+            Go beyond the obvious.
+            Discover local food,
+            culture, markets,
+            hidden places and
+            authentic experiences.
+
+          </p>
+
+
+          <div class="experience-chips">
+
+
+            <button
+              type="button"
+              onclick="showExperience('Local food')"
+            >
+              Local food
+            </button>
+
+
+            <button
+              type="button"
+              onclick="showExperience('Culture')"
+            >
+              Culture
+            </button>
+
+
+            <button
+              type="button"
+              onclick="showExperience('Markets')"
+            >
+              Markets
+            </button>
+
+
+            <button
+              type="button"
+              onclick="showExperience('Hidden places')"
+            >
+              Hidden places
+            </button>
+
+
+            <button
+              type="button"
+              onclick="showExperience('Adventure')"
+            >
+              Adventure
+            </button>
+
+
+          </div>
+
+
+          <div class="experience-reveal-box">
+
+
+            <span>
+              ✦
+            </span>
+
+
+            <div>
+
+              <small>
+                VYORA DISCOVERY
+              </small>
+
+
+              <strong id="experienceTitle">
+                Follow the flavour.
+              </strong>
+
+
+              <p id="experienceText">
+                VYORA can prioritize local dishes,
+                regional cafés and food trails.
+              </p>
+
+            </div>
+
+
+          </div>
+
+
+        </div>
+
+
+        <div class="experience-visual reveal reveal-delay">
+
+
+          <div class="experience-orbit orbit-one"></div>
+
+          <div class="experience-orbit orbit-two"></div>
+
+
+          <div class="experience-stat">
+
+            <span>
+              ✦
+            </span>
+
+            <strong>
+              AI
+            </strong>
+
+            <small>
+              POWERED DISCOVERY
             </small>
 
           </div>
 
 
-          <span>
-            ${escapeHTML(
-              currentJourney.destination
-            )}
-          </span>
+          <div class="floating-tag tag-one">
+            LOCAL
+          </div>
+
+
+          <div class="floating-tag tag-two">
+            HIDDEN
+          </div>
+
+
+          <div class="floating-tag tag-three">
+            AUTHENTIC
+          </div>
+
 
         </div>
 
 
-        ${createActivityHTML(
-          "Morning",
-          morning
-        )}
+      </section>
 
 
-        ${createActivityHTML(
-          "Afternoon",
-          afternoon
-        )}
+      <!-- ===================================================
+           AI ASSISTANT
+      ==================================================== -->
 
+      <section class="assistant-section">
 
-        ${createActivityHTML(
-          "Evening",
-          evening
-        )}
 
-      </article>
+        <div class="assistant-card reveal">
 
-    `;
 
-  }
+          <div class="assistant-icon">
+            ✦
+          </div>
 
 
-  timeline.innerHTML =
-    html;
+          <div class="assistant-copy">
 
-}
 
+            <span class="section-label">
+              08 / YOUR TRAVEL COMPANION
+            </span>
 
-/* =========================================================
-   JOURNEY HEADER
-========================================================= */
 
-function updateJourneyHeader() {
+            <h2>
+              Ask VYORA anything.
+            </h2>
 
-  const title =
-    $("#journeyTitle");
 
-  const meta =
-    $("#journeyMeta");
+            <p>
 
-  const score =
-    $("#journeyScore");
+              “Where should I go?”
 
+              “Make my trip cheaper.”
 
-  if (title) {
+              “Find something hidden.”
 
-    title.textContent =
-      currentJourney.destination
+              Your travel co-pilot is always one message away.
 
-        ? `${currentJourney.destination}, your way.`
+            </p>
 
-        : "Your next adventure.";
 
-  }
+          </div>
 
 
-  if (meta) {
+          <button
+            class="assistant-btn magnetic"
+            type="button"
+            onclick="openAssistant()"
+          >
+            Chat with VYORA AI →
+          </button>
 
-    if (
-      currentJourney.destination &&
-      currentJourney.startDate &&
-      currentJourney.endDate
-    ) {
 
-      const vibe =
-        currentJourney
-          .interests.length
+        </div>
 
-          ? currentJourney
-              .interests
-              .slice(
-                0,
-                3
-              )
-              .join(
-                " · "
-              )
 
-          : "Balanced exploration";
+      </section>
 
 
-      meta.textContent =
-        `${formatDate(
-          currentJourney.startDate
-        )} → ${formatDate(
-          currentJourney.endDate
-        )} · ${
-          currentJourney.days
-        } days · ${
-          formatCurrency(
-            currentJourney.budget
-          )
-        } budget · ${vibe}`;
+    </main>
 
-    } else {
 
-      meta.textContent =
-        "Choose your destination and dates to begin.";
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
 
-    }
+    <footer>
 
-  }
 
+      <div class="footer-brand">
 
-  if (score) {
 
-    if (
-      !currentJourney.destination
-    ) {
+        <div class="brand-mark">
+          V
+        </div>
 
-      score.textContent =
-        "—";
 
-      return;
+        <div>
 
-    }
+          <strong>
+            VYORA
+          </strong>
 
 
-    const calculatedScore =
-      Math.min(
-        88 +
-        currentJourney
-          .interests
-          .length *
-          2 +
-        (
-          currentJourney.days >=
-          3
-            ? 3
-            : 0
-        ),
-        98
-      );
+          <small>
+            Travel Beyond the Ordinary.
+          </small>
 
+        </div>
 
-    score.textContent =
-      `${calculatedScore}%`;
 
-  }
+      </div>
 
-}
 
+      <div class="footer-links">
 
-/* =========================================================
-   BUDGET
-========================================================= */
 
-function updateBudget() {
+        <a href="#explore">
+          Explore
+        </a>
 
-  const budget =
-    Number(
-      currentJourney.budget
-    ) || 0;
 
+        <a href="#planner">
+          AI Planner
+        </a>
 
-  if (budget <= 0) {
 
-    resetBudgetUI();
+        <a href="#hotels">
+          Hotels
+        </a>
 
-    return;
 
-  }
+        <a href="#experiences">
+          Experiences
+        </a>
 
 
-  const hotel =
-    Math.round(
-      budget * 0.34
-    );
-
-
-  const food =
-    Math.round(
-      budget * 0.20
-    );
-
-
-  const transport =
-    Math.round(
-      budget * 0.18
-    );
-
-
-  const activities =
-    Math.round(
-      budget * 0.17
-    );
-
-
-  const total =
-    hotel +
-    food +
-    transport +
-    activities;
-
-
-  const reserve =
-    Math.max(
-      budget - total,
-      0
-    );
-
-
-  if ($("#budgetTotal")) {
-
-    $("#budgetTotal")
-      .textContent =
-      formatCurrency(total);
-
-  }
-
-
-  if ($("#budgetHotel")) {
-
-    $("#budgetHotel")
-      .textContent =
-      formatCurrency(hotel);
-
-  }
-
-
-  if ($("#budgetFood")) {
-
-    $("#budgetFood")
-      .textContent =
-      formatCurrency(food);
-
-  }
-
-
-  if ($("#budgetTransport")) {
-
-    $("#budgetTransport")
-      .textContent =
-      formatCurrency(transport);
-
-  }
-
-
-  if ($("#budgetActivities")) {
-
-    $("#budgetActivities")
-      .textContent =
-      formatCurrency(activities);
-
-  }
-
-
-  updateProgress(
-    "hotelProgress",
-    hotel / budget * 100
-  );
-
-
-  updateProgress(
-    "foodProgress",
-    food / budget * 100
-  );
-
-
-  updateProgress(
-    "transportProgress",
-    transport / budget * 100
-  );
-
-
-  updateProgress(
-    "activitiesProgress",
-    activities / budget * 100
-  );
-
-
-  const percentage =
-    Math.min(
-      Math.round(
-        total / budget * 100
-      ),
-      100
-    );
-
-
-  if ($("#budgetPercent")) {
-
-    $("#budgetPercent")
-      .textContent =
-      `${percentage}%`;
-
-  }
-
-
-  const ring =
-    $("#budgetRing");
-
-
-  if (ring) {
-
-    const degrees =
-      percentage * 3.6;
-
-
-    ring.style.background = `
-
-      radial-gradient(
-        circle,
-        white 57%,
-        transparent 58%
-      ),
-
-      conic-gradient(
-        var(--accent)
-        ${degrees}deg,
-
-        #e6e8df
-        ${degrees}deg
-      )
-
-    `;
-
-  }
-
-
-  const note =
-    $("#budgetNote");
-
-
-  if (note) {
-
-    note.textContent =
-      reserve > 0
-
-        ? `${formatCurrency(
-            reserve
-          )} remains as a flexible travel buffer.`
-
-        : "Your full budget is allocated across the journey.";
-
-  }
-
-}
-
-
-function updateProgress(
-  id,
-  value
-) {
-
-  const element =
-    document.getElementById(
-      id
-    );
-
-
-  if (!element) {
-
-    return;
-
-  }
-
-
-  requestAnimationFrame(
-    () => {
-
-      element.style.width =
-        `${Math.max(
-          0,
-          Math.min(
-            Number(value) || 0,
-            100
-          )
-        )}%`;
-
-    }
-  );
-
-}
-
-
-function resetBudgetUI() {
-
-  const fields = [
-
-    "budgetTotal",
-
-    "budgetHotel",
-
-    "budgetFood",
-
-    "budgetTransport",
-
-    "budgetActivities"
-
-  ];
-
-
-  fields.forEach(
-    (id) => {
-
-      const element =
-        document.getElementById(
-          id
-        );
-
-
-      if (element) {
-
-        element.textContent =
-          formatCurrency(0);
-
-      }
-
-    }
-  );
-
-
-  [
-    "hotelProgress",
-    "foodProgress",
-    "transportProgress",
-    "activitiesProgress"
-
-  ].forEach(
-    (id) => {
-
-      const element =
-        document.getElementById(
-          id
-        );
-
-
-      if (element) {
-
-        element.style.width =
-          "0%";
-
-      }
-
-    }
-  );
-
-
-  const percent =
-    $("#budgetPercent");
-
-
-  if (percent) {
-
-    percent.textContent =
-      "0%";
-
-  }
-
-
-  const note =
-    $("#budgetNote");
-
-
-  if (note) {
-
-    note.textContent =
-      "Enter your budget to see VYORA's cost breakdown.";
-
-  }
-
-}
-
-
-/* =========================================================
-   LOCAL FALLBACK SAVE / LOAD
-========================================================= */
-
-function saveTripLocally() {
-
-  if (
-    !currentJourney.destination
-  ) {
-
-    return;
-
-  }
-
-
-  localStorage.setItem(
-    "vyoraSavedTrip",
-    JSON.stringify(
-      currentJourney
-    )
-  );
-
-}
-
-
-function loadSavedTrip() {
-
-  const saved =
-    localStorage.getItem(
-      "vyoraSavedTrip"
-    );
-
-
-  if (!saved) {
-
-    return;
-
-  }
-
-
-  try {
-
-    const data =
-      JSON.parse(
-        saved
-      );
-
-
-    if (
-      !data ||
-      !data.destination
-    ) {
-
-      return;
-
-    }
-
-
-    currentJourney = {
-
-      tripId:
-        data.tripId ||
-        null,
-
-      destination:
-        data.destination ||
-        "",
-
-      startDate:
-        data.startDate ||
-        "",
-
-      endDate:
-        data.endDate ||
-        "",
-
-      days:
-        Number(
-          data.days
-        ) || 0,
-
-      budget:
-        Number(
-          data.budget
-        ) || 0,
-
-      interests:
-        Array.isArray(
-          data.interests
-        )
-          ? data.interests
-          : []
-
-    };
-
-
-    restoreJourneyToForm();
-
-
-  } catch (error) {
-
-    console.error(
-      "Saved journey error:",
-      error
-    );
-
-  }
-
-}
-
-
-function restoreJourneyToForm() {
-
-  const destination =
-    $("#plannerDestination");
-
-  const start =
-    $("#plannerStartDate");
-
-  const end =
-    $("#plannerEndDate");
-
-  const budget =
-    $("#plannerBudget");
-
-  const days =
-    $("#plannerDays");
-
-
-  if (destination) {
-
-    destination.value =
-      currentJourney.destination;
-
-  }
-
-
-  if (start) {
-
-    start.value =
-      String(
-        currentJourney.startDate
-      ).slice(
-        0,
-        10
-      );
-
-  }
-
-
-  if (end) {
-
-    end.value =
-      String(
-        currentJourney.endDate
-      ).slice(
-        0,
-        10
-      );
-
-  }
-
-
-  if (budget) {
-
-    budget.value =
-      currentJourney.budget;
-
-  }
-
-
-  if (days) {
-
-    days.value =
-      currentJourney.days;
-
-  }
-
-
-  $$(".interest")
-    .forEach(
-      button => {
-
-        button.classList.toggle(
-          "active",
-          currentJourney
-            .interests
-            .includes(
-              button.dataset.interest
-            )
-        );
-
-      }
-    );
-
-
-  updatePlannerDuration();
-
-  renderItinerary();
-
-  updateJourneyHeader();
-
-  updateBudget();
-
-}
-
-
-/* =========================================================
-   BUILD ITINERARY DATA FOR BACKEND
-========================================================= */
-
-function buildItineraryData() {
-
-  if (
-    !currentJourney.destination ||
-    !currentJourney.startDate ||
-    !currentJourney.days
-  ) {
-
-    return [];
-
-  }
-
-
-  const itinerary = [];
-
-
-  for (
-    let day = 1;
-    day <= currentJourney.days;
-    day++
-  ) {
-
-    const morning =
-      getActivity(
-        "morning",
-        day - 1
-      );
-
-
-    const afternoon =
-      getActivity(
-        "afternoon",
-        day - 1
-      );
-
-
-    const evening =
-      getActivity(
-        "evening",
-        day - 1
-      );
-
-
-    itinerary.push({
-
-      day,
-
-      date:
-        getDateAfter(
-          currentJourney.startDate,
-          day - 1
-        ),
-
-      destination:
-        currentJourney.destination,
-
-      activities: [
-
-        {
-          period: "Morning",
-          name: morning.name,
-          description: morning.description,
-          cost: morning.cost,
-          time: morning.time,
-          travel: morning.travel
-        },
-
-        {
-          period: "Afternoon",
-          name: afternoon.name,
-          description: afternoon.description,
-          cost: afternoon.cost,
-          time: afternoon.time,
-          travel: afternoon.travel
-        },
-
-        {
-          period: "Evening",
-          name: evening.name,
-          description: evening.description,
-          cost: evening.cost,
-          time: evening.time,
-          travel: evening.travel
-        }
-
-      ]
-
-    });
-
-  }
-
-
-  return itinerary;
-
-}
-
-
-/* =========================================================
-   SAVE TRIP — POSTGRESQL
-========================================================= */
-
-async function saveTrip() {
-
-  const user =
-    getLoggedInUser();
-
-
-  if (!user) {
-
-    showToast(
-      "Sign in required",
-      "Please sign in before saving a journey."
-    );
-
-    openAuthModal(
-      "login"
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !currentJourney.destination
-  ) {
-
-    showToast(
-      "Nothing to save",
-      "Generate a journey first."
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    showToast(
-      currentJourney.tripId
-        ? "Updating journey"
-        : "Saving journey",
-
-      "Connecting to your VYORA account..."
-    );
-
-
-    const hasExistingTrip =
-      Boolean(
-        currentJourney.tripId
-      );
-
-
-    const url =
-      hasExistingTrip
-        ? `${VYORA_TRIPS_API}/${currentJourney.tripId}`
-        : VYORA_TRIPS_API;
-
-
-    const response =
-      await fetch(
-        url,
-        {
-
-          method:
-            hasExistingTrip
-              ? "PATCH"
-              : "POST",
-
-          credentials:
-            "include",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              destination:
-                currentJourney.destination,
-
-              startDate:
-                currentJourney.startDate,
-
-              endDate:
-                currentJourney.endDate,
-
-              budget:
-                currentJourney.budget,
-
-              interests:
-                currentJourney.interests,
-
-              itinerary:
-                buildItineraryData()
-
-            })
-
-        }
-      );
-
-
-    let data = {};
-
-
-    try {
-
-      data =
-        await response.json();
-
-    } catch {
-
-      data = {};
-
-    }
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      currentUser = null;
-
-      localStorage.removeItem(
-        "vyoraUser"
-      );
-
-      updateAuthUI();
-
-      showToast(
-        "Session expired",
-        "Please sign in again."
-      );
-
-      openAuthModal(
-        "login"
-      );
-
-      return;
-
-    }
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        "Unable to save journey."
-      );
-
-    }
-
-
-    if (
-      data.trip
-    ) {
-
-      currentJourney.tripId =
-        data.trip.id;
-
-    }
-
-
-    saveTripLocally();
-
-    await refreshMyJourneys(
-      false
-    );
-
-
-    showToast(
-      hasExistingTrip
-        ? "Journey updated"
-        : "Journey saved",
-
-      hasExistingTrip
-        ? "Your VYORA journey has been updated."
-        : "Your journey is now stored in VYORA."
-    );
-
-
-    console.log(
-      "VYORA saved trip:",
-      data.trip
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA save trip error:",
-      error
-    );
-
-
-    showToast(
-      "Save failed",
-      error.message ||
-        "Unable to save your journey."
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   GET MY TRIPS
-========================================================= */
-
-async function getMyTrips() {
-
-  const user =
-    getLoggedInUser();
-
-
-  if (!user) {
-
-    return [];
-
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        VYORA_TRIPS_API,
-        {
-
-          method:
-            "GET",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store"
-
-        }
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      currentUser = null;
-
-      localStorage.removeItem(
-        "vyoraUser"
-      );
-
-      updateAuthUI();
-
-      return [];
-
-    }
-
-
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        "Unable to load journeys."
-      );
-
-    }
-
-
-    return Array.isArray(
-      data.trips
-    )
-      ? data.trips
-      : [];
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA get trips error:",
-      error
-    );
-
-    return [];
-
-  }
-
-}
-
-
-/* =========================================================
-   GET SINGLE TRIP
-========================================================= */
-
-async function getTrip(
-  tripId
-) {
-
-  if (!tripId) {
-
-    return null;
-
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        `${VYORA_TRIPS_API}/${tripId}`,
-        {
-
-          method:
-            "GET",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store"
-
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      currentUser = null;
-
-      localStorage.removeItem(
-        "vyoraUser"
-      );
-
-      updateAuthUI();
-
-      return null;
-
-    }
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        "Unable to load journey."
-      );
-
-    }
-
-
-    return data.trip ||
-      null;
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA get trip error:",
-      error
-    );
-
-    return null;
-
-  }
-
-}
-
-
-/* =========================================================
-   DELETE TRIP
-========================================================= */
-
-async function deleteTrip(
-  tripId
-) {
-
-  if (!tripId) {
-
-    return false;
-
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        `${VYORA_TRIPS_API}/${tripId}`,
-        {
-
-          method:
-            "DELETE",
-
-          credentials:
-            "include"
-
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      currentUser = null;
-
-      localStorage.removeItem(
-        "vyoraUser"
-      );
-
-      updateAuthUI();
-
-      showToast(
-        "Session expired",
-        "Please sign in again."
-      );
-
-      return false;
-
-    }
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        "Unable to delete journey."
-      );
-
-    }
-
-
-    if (
-      String(
-        currentJourney.tripId
-      ) ===
-      String(
-        tripId
-      )
-    ) {
-
-      currentJourney.tripId =
-        null;
-
-      saveTripLocally();
-
-    }
-
-
-    showToast(
-      "Journey deleted",
-      "The journey has been removed from VYORA."
-    );
-
-
-    return true;
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA delete trip error:",
-      error
-    );
-
-
-    showToast(
-      "Delete failed",
-      error.message ||
-        "Unable to delete journey."
-    );
-
-
-    return false;
-
-  }
-
-}
-
-
-/* =========================================================
-   MY JOURNEYS UI
-========================================================= */
-
-function getJourneyDestinationData(
-  destination
-) {
-
-  const match =
-    findDestination(
-      destination
-    );
-
-
-  return match
-    ? destinationDatabase[match]
-    : null;
-
-}
-
-
-function getJourneyImage(
-  destination
-) {
-
-  const data =
-    getJourneyDestinationData(
-      destination
-    );
-
-
-  return data?.image ||
-    "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1000&q=85";
-
-}
-
-
-function journeyDateRange(
-  trip
-) {
-
-  const start =
-    String(
-      trip.start_date ||
-      trip.startDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  const end =
-    String(
-      trip.end_date ||
-      trip.endDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  if (
-    start &&
-    end
-  ) {
-
-    return `${formatDate(start)} → ${formatDate(end)}`;
-
-  }
-
-
-  return "Flexible dates";
-
-}
-
-
-function renderMyJourneys(
-  trips
-) {
-
-  const grid =
-    $("#myJourneysGrid");
-
-  const empty =
-    $("#myJourneysEmpty");
-
-
-  if (!grid || !empty) {
-
-    return;
-
-  }
-
-
-  grid.innerHTML = "";
-
-
-  if (
-    !Array.isArray(trips) ||
-    trips.length === 0
-  ) {
-
-    grid.hidden =
-      true;
-
-    empty.hidden =
-      false;
-
-    return;
-
-  }
-
-
-  grid.hidden =
-    false;
-
-  empty.hidden =
-    true;
-
-
-  trips.forEach(
-    (trip, index) => {
-
-      const destination =
-        trip.destination ||
-        "Your journey";
-
-
-      const tripId =
-        trip.id;
-
-
-      const interests =
-        Array.isArray(
-          trip.interests
-        )
-          ? trip.interests
-          : [];
-
-
-      const days =
-        Number(
-          trip.days
-        ) || calculateTripDays(
-          trip.start_date,
-          trip.end_date
-        );
-
-
-      const budget =
-        Number(
-          trip.budget
-        ) || 0;
-
-
-      const article =
-        document.createElement(
-          "article"
-        );
-
-
-      article.className =
-        "my-journey-card reveal visible";
-
-
-      article.innerHTML = `
-
-        <div
-          class="my-journey-image"
-          style="background-image:
-            url('${escapeHTML(
-              getJourneyImage(
-                destination
-              )
-            )}')"
+        <a
+          href="#myJourneys"
+          id="footerJourneysLink"
+          hidden
         >
+          My Journeys
+        </a>
 
-          <span class="my-journey-index">
-            JOURNEY ${
-              String(
-                index + 1
-              ).padStart(
-                2,
-                "0"
-              )
-            }
-          </span>
 
+      </div>
 
-          <span class="my-journey-date">
 
-            ${escapeHTML(
-              journeyDateRange(
-                trip
-              )
-            )}
+      <p>
+        © 2026 VYORA · Intelligent travel, reimagined.
+      </p>
 
-          </span>
 
-        </div>
+    </footer>
 
 
-        <div class="my-journey-body">
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
 
-          <span class="journey-location">
+    <div
+      class="toast"
+      id="toast"
+      role="status"
+      aria-live="polite"
+    >
 
-            VYORA SAVED JOURNEY
 
-          </span>
+      <span>
+        ✦
+      </span>
 
-
-          <h3>
-            ${escapeHTML(
-              destination
-            )}
-          </h3>
-
-
-          <div class="my-journey-meta">
-
-            <span>
-              ${days}
-              day${days === 1 ? "" : "s"}
-            </span>
-
-
-            <span>
-              ${formatCurrency(
-                budget
-              )}
-            </span>
-
-
-            ${
-              interests.length
-                ? `
-                  <span>
-                    ${escapeHTML(
-                      interests
-                        .slice(
-                          0,
-                          2
-                        )
-                        .join(
-                          " · "
-                        )
-                    )}
-                  </span>
-                `
-                : ""
-            }
-
-          </div>
-
-
-          <div class="my-journey-actions">
-
-            <button
-              class="my-journey-open"
-              type="button"
-              data-action="open"
-              data-trip-id="${escapeHTML(
-                String(tripId)
-              )}"
-            >
-            <div class="my-journey-actions">
-
-  <button
-    class="my-journey-open"
-    type="button"
-    data-action="open"
-    data-trip-id="${escapeHTML(
-      String(tripId)
-    )}"
-  >
-    Open journey →
-  </button>
-
-  <button
-    class="my-journey-edit"
-    type="button"
-    data-action="edit"
-    data-trip-id="${escapeHTML(
-      String(tripId)
-    )}"
-  >
-    Edit
-  </button>
-
-  <button
-    class="my-journey-delete"
-    type="button"
-    data-action="delete"
-    data-trip-id="${escapeHTML(
-      String(tripId)
-    )}"
-  >
-    Delete
-  </button>
-
-</div>
-              type="button"
-              data-action="delete"
-              data-trip-id="${escapeHTML(
-                String(tripId)
-              )}"
-            >
-              Delete
-            </button>
-
-          </div>
-
-        </div>
-
-      `;
-
-
-      grid.appendChild(
-        article
-      );
-
-    }
-  );
-
-
-  updateActiveNav();
-
-}
-
-
-async function refreshMyJourneys(
-  showLoading = true
-) {
-
-  const user =
-    getLoggedInUser();
-
-
-  const section =
-    $("#myJourneys");
-
-
-  const loading =
-    $("#myJourneysLoading");
-
-
-  if (!section) {
-
-    return [];
-
-  }
-
-
-  if (!user) {
-
-    section.hidden =
-      true;
-
-    if (loading) {
-
-      loading.hidden =
-        true;
-
-    }
-
-    updateActiveNav();
-
-    return [];
-
-  }
-
-
-  section.hidden =
-    false;
-
-
-  if (loading) {
-
-    loading.hidden =
-      !showLoading;
-
-  }
-
-
-  const trips =
-    await getMyTrips();
-
-
-  renderMyJourneys(
-    trips
-  );
-
-
-  if (loading) {
-
-    loading.hidden =
-      true;
-
-  }
-
-
-  updateActiveNav();
-
-
-  return trips;
-
-}
-
-/* =========================================================
-   RENDER SAVED TRIP ITINERARY
-========================================================= */
-
-function renderSavedTripItinerary(
-  itinerary
-) {
-
-  const timeline =
-    $("#itineraryTimeline");
-
-
-  if (!timeline) {
-
-    return;
-
-  }
-
-
-  if (
-    !Array.isArray(itinerary) ||
-    itinerary.length === 0
-  ) {
-
-    renderItinerary();
-
-    return;
-
-  }
-
-
-  let html =
-    "";
-
-
-  itinerary.forEach(
-    (dayData, index) => {
-
-      const dayNumber =
-        Number(
-          dayData.day
-        ) ||
-        index + 1;
-
-
-      const date =
-        dayData.date ||
-        getDateAfter(
-          currentJourney.startDate,
-          dayNumber - 1
-        );
-
-
-      const destination =
-        dayData.destination ||
-        currentJourney.destination;
-
-
-      const activities =
-        Array.isArray(
-          dayData.activities
-        )
-          ? dayData.activities
-          : [];
-
-
-      html += `
-
-        <article
-          class="day-card reveal visible saved-day-card"
-        >
-
-          <div class="day-header">
-
-            <div>
-
-              <strong>
-                DAY
-                ${String(
-                  dayNumber
-                ).padStart(
-                  2,
-                  "0"
-                )}
-              </strong>
-
-              <small
-                class="itinerary-calendar-date"
-              >
-                ${escapeHTML(
-                  formatDate(
-                    date
-                  )
-                )}
-              </small>
-
-            </div>
-
-            <span>
-              ${escapeHTML(
-                destination
-              )}
-            </span>
-
-          </div>
-
-
-          ${
-            activities.length
-              ? activities
-                  .map(
-                    (activity) =>
-                      createActivityHTML(
-                        activity.period ||
-                          "Experience",
-                        {
-                          name:
-                            activity.name ||
-                            "VYORA Experience",
-
-                          description:
-                            activity.description ||
-                            "A saved journey experience.",
-
-                          cost:
-                            Number(
-                              activity.cost
-                            ) || 0,
-
-                          time:
-                            activity.time ||
-                            "Flexible",
-
-                          travel:
-                            activity.travel ||
-                            "—"
-                        }
-                      )
-                  )
-                  .join("")
-              : `
-                <div class="empty-itinerary">
-
-                  <div>
-                    ✦
-                  </div>
-
-                  <strong>
-                    No activities saved for this day.
-                  </strong>
-
-                  <p>
-                    VYORA can rebuild this journey
-                    from the planner.
-                  </p>
-
-                </div>
-              `
-          }
-
-        </article>
-
-      `;
-
-    }
-  );
-
-
-  timeline.innerHTML =
-    html;
-
-}
-
-
-/* =========================================================
-   SAVED TRIP DETAILS
-========================================================= */
-
-function renderSavedTripDetails(
-  trip
-) {
-
-  const section =
-    $("#itinerary");
-
-  const timeline =
-    $("#itineraryTimeline");
-
-
-  if (
-    !section ||
-    !timeline ||
-    !trip
-  ) {
-
-    return;
-
-  }
-
-
-  let panel =
-    $("#savedTripDetails");
-
-
-  /*
-    Create the details panel only once.
-  */
-
-  if (!panel) {
-
-    panel =
-      document.createElement(
-        "div"
-      );
-
-
-    panel.id =
-      "savedTripDetails";
-
-
-    panel.className =
-      "saved-trip-details";
-
-
-    timeline.parentNode.insertBefore(
-      panel,
-      timeline
-    );
-
-  }
-
-
-  const interests =
-    Array.isArray(
-      trip.interests
-    )
-      ? trip.interests
-      : [];
-
-
-  const startDate =
-    String(
-      trip.start_date ||
-      trip.startDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  const endDate =
-    String(
-      trip.end_date ||
-      trip.endDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  const days =
-    Number(
-      trip.days
-    ) ||
-    calculateTripDays(
-      startDate,
-      endDate
-    );
-
-
-  const budget =
-    Number(
-      trip.budget
-    ) || 0;
-
-
-  const destination =
-    trip.destination ||
-    currentJourney.destination ||
-    "Your journey";
-
-
-  panel.innerHTML = `
-
-    <div class="saved-trip-details-header">
 
       <div>
 
-        <span class="saved-trip-eyebrow">
-          SAVED JOURNEY
-        </span>
+        <strong id="toastTitle">
+          VYORA
+        </strong>
 
-        <h3>
-          ${escapeHTML(
-            destination
-          )}
-        </h3>
 
-        <p>
-          Your saved VYORA journey,
-          synced from your account.
+        <p id="toastText">
+          Action completed.
         </p>
 
       </div>
 
 
-      <div class="saved-trip-status">
-
-        <span></span>
-
-        SAVED
-
-      </div>
-
     </div>
 
 
-    <div class="saved-trip-details-grid">
+    <!-- =====================================================
+         AI CHAT
+    ====================================================== -->
 
-      <div class="saved-trip-detail">
+    <div
+      class="chat-window"
+      id="chatWindow"
+    >
 
-        <span class="saved-trip-detail-label">
-          TRAVEL DATES
-        </span>
 
-        <strong>
+      <div class="chat-header">
 
-          ${
-            startDate &&
-            endDate
 
-              ? `${escapeHTML(
-                  formatDate(
-                    startDate
-                  )
-                )} → ${escapeHTML(
-                  formatDate(
-                    endDate
-                  )
-                )}`
+        <div class="chat-brand">
 
-              : "Flexible dates"
-          }
 
-        </strong>
+          <div class="chat-ai-icon">
+            ✦
+          </div>
 
-      </div>
 
+          <div>
 
-      <div class="saved-trip-detail">
+            <strong>
+              VYORA AI
+            </strong>
 
-        <span class="saved-trip-detail-label">
-          DURATION
-        </span>
 
-        <strong>
+            <small>
+              Your travel co-pilot
+            </small>
 
-          ${days}
+          </div>
 
-          day${
-            days === 1
-              ? ""
-              : "s"
-          }
 
-        </strong>
-
-      </div>
-
-
-      <div class="saved-trip-detail">
-
-        <span class="saved-trip-detail-label">
-          BUDGET
-        </span>
-
-        <strong>
-
-          ${formatCurrency(
-            budget
-          )}
-
-        </strong>
-
-      </div>
-
-
-      <div class="saved-trip-detail">
-
-        <span class="saved-trip-detail-label">
-          INTERESTS
-        </span>
-
-        <strong>
-
-          ${
-            interests.length
-
-              ? escapeHTML(
-                  interests
-                    .slice(
-                      0,
-                      3
-                    )
-                    .join(
-                      " · "
-                    )
-                )
-
-              : "Balanced exploration"
-          }
-
-        </strong>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-async function openSavedTrip(
-  tripId
-) {
-
-  /* -------------------------------------------------------
-     Get the actual saved trip from PostgreSQL
-     ------------------------------------------------------- */
-
-  const trip =
-    await getTrip(
-      tripId
-    );
-
-
-  if (!trip) {
-
-    showToast(
-      "Journey unavailable",
-      "VYORA could not load this saved journey."
-    );
-
-    return;
-
-  }
-
-
-  /* -------------------------------------------------------
-     Normalize saved trip data
-     ------------------------------------------------------- */
-
-  const interests =
-    Array.isArray(
-      trip.interests
-    )
-      ? trip.interests
-      : [];
-
-
-  const itinerary =
-    Array.isArray(
-      trip.itinerary
-    )
-      ? trip.itinerary
-      : [];
-
-
-  const startDate =
-    String(
-      trip.start_date ||
-      trip.startDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  const endDate =
-    String(
-      trip.end_date ||
-      trip.endDate ||
-      ""
-    ).slice(
-      0,
-      10
-    );
-
-
-  const days =
-    Number(
-      trip.days
-    ) ||
-    calculateTripDays(
-      startDate,
-      endDate
-    );
-
-
-  const budget =
-    Number(
-      trip.budget
-    ) || 0;
-
-
-  /* -------------------------------------------------------
-     Restore the saved journey into global state
-     ------------------------------------------------------- */
-
-  currentJourney = {
-
-    tripId:
-      trip.id,
-
-    destination:
-      trip.destination ||
-      "",
-
-    startDate,
-
-    endDate,
-
-    days,
-
-    budget,
-
-    interests
-
-  };
-
-
-  /* -------------------------------------------------------
-     Restore planner controls
-     ------------------------------------------------------- */
-
-  restoreJourneyToForm();
-
-
-  /* -------------------------------------------------------
-     Render actual saved trip details
-     ------------------------------------------------------- */
-
-  renderSavedTripDetails(
-    trip
-  );
-
-
-  /* -------------------------------------------------------
-     Render actual saved PostgreSQL itinerary
-     ------------------------------------------------------- */
-
-  if (
-    itinerary.length
-  ) {
-
-    renderSavedTripItinerary(
-      itinerary
-    );
-
-  } else {
-
-    renderItinerary();
-
-  }
-
-
-  /* -------------------------------------------------------
-     Refresh journey summary
-     ------------------------------------------------------- */
-
-  updateJourneyHeader();
-
-  updateBudget();
-
-
-  /* -------------------------------------------------------
-     Keep local fallback in sync
-     ------------------------------------------------------- */
-
-  saveTripLocally();
-
-
-  /* -------------------------------------------------------
-     User feedback
-     ------------------------------------------------------- */
-
-  showToast(
-    "Journey loaded",
-    `${currentJourney.destination} is ready to explore again.`
-  );
-
-
-  /* -------------------------------------------------------
-     Scroll directly to the opened journey
-     ------------------------------------------------------- */
-
-  $("#itinerary")
-    ?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-
-  /* -------------------------------------------------------
-     Debug confirmation
-     ------------------------------------------------------- */
-
-  console.log(
-    "VYORA opened saved trip:",
-    trip
-  );
-
-}
-
-async function handleJourneyDelete(
-  tripId
-) {
-
-  const deleted =
-    await deleteTrip(
-      tripId
-    );
-
-
-  if (!deleted) {
-
-    return;
-
-  }
-
-
-  await refreshMyJourneys(
-    false
-  );
-
-}
-
-
-/* =========================================================
-   SHARE
-========================================================= */
-
-async function shareTrip() {
-
-  if (
-    !currentJourney.destination
-  ) {
-
-    showToast(
-      "Nothing to share",
-      "Generate a journey first."
-    );
-
-    return;
-
-  }
-
-
-  let text =
-    `My VYORA journey: ${currentJourney.destination}`;
-
-
-  if (
-    currentJourney.startDate &&
-    currentJourney.endDate
-  ) {
-
-    text +=
-      ` · ${formatDate(
-        currentJourney.startDate
-      )} → ${formatDate(
-        currentJourney.endDate
-      )}`;
-
-  }
-
-
-  text +=
-    ` · ${formatCurrency(
-      currentJourney.budget
-    )} budget.`;
-
-
-  try {
-
-    if (
-      navigator.share
-    ) {
-
-      await navigator.share({
-
-        title:
-          "My VYORA Journey",
-
-        text,
-
-        url:
-          window.location.href
-
-      });
-
-    } else {
-
-      await navigator.clipboard.writeText(
-        `${text} ${window.location.href}`
-      );
-
-
-      showToast(
-        "Copied",
-        "Journey details copied to your clipboard."
-      );
-
-    }
-
-  } catch (error) {
-
-    if (
-      error.name !==
-      "AbortError"
-    ) {
-
-      showToast(
-        "Share unavailable",
-        "Your browser could not complete the share."
-      );
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   HOTELS
-========================================================= */
-
-function toggleFavorite(
-  button
-) {
-
-  if (!button) {
-
-    return;
-
-  }
-
-
-  const active =
-    button.classList.toggle(
-      "favorite"
-    );
-
-
-  button.textContent =
-    active
-      ? "♥"
-      : "♡";
-
-
-  showToast(
-    active
-      ? "Saved"
-      : "Removed",
-
-    active
-      ? "Hotel added to your saved places."
-      : "Hotel removed from saved places."
-  );
-
-}
-
-
-function showHotelDemo(
-  hotelName
-) {
-
-  openModal(
-    hotelName,
-    "This is VYORA prototype hotel data. Live availability, room selection, booking and dynamic pricing can be connected through secure APIs."
-  );
-
-}
-
-
-/* =========================================================
-   EXPERIENCES
-========================================================= */
-
-const experiences = {
-
-  "Local food": {
-
-    title:
-      "Follow the flavour.",
-
-    text:
-      "Discover local dishes, regional cafés, street food and signature food trails."
-
-  },
-
-  Culture: {
-
-    title:
-      "See the culture.",
-
-    text:
-      "Explore traditions, museums, crafts, festivals and local stories."
-
-  },
-
-  Markets: {
-
-    title:
-      "Walk the market.",
-
-    text:
-      "Find neighbourhood markets, local products, crafts and evening street life."
-
-  },
-
-  "Hidden places": {
-
-    title:
-      "Go beyond the obvious.",
-
-    text:
-      "Discover quieter places and alternative experiences away from the standard route."
-
-  },
-
-  Adventure: {
-
-    title:
-      "Make it memorable.",
-
-    text:
-      "VYORA can adapt activities around your preferred pace and interests."
-
-  }
-
-};
-
-
-function showExperience(
-  type
-) {
-
-  const data =
-    experiences[type];
-
-
-  if (!data) {
-
-    return;
-
-  }
-
-
-  if ($("#experienceTitle")) {
-
-    $("#experienceTitle")
-      .textContent =
-      data.title;
-
-  }
-
-
-  if ($("#experienceText")) {
-
-    $("#experienceText")
-      .textContent =
-      data.text;
-
-  }
-
-}
-
-
-/* =========================================================
-   MAP
-========================================================= */
-
-function mapPin(
-  type
-) {
-
-  showToast(
-    `${type} selected`,
-    `VYORA selected a prototype ${type.toLowerCase()} location.`
-  );
-
-}
-
-
-/* =========================================================
-   AI ASSISTANT
-========================================================= */
-
-function openAssistant() {
-
-  const chat =
-    $("#chatWindow");
-
-
-  if (!chat) {
-
-    return;
-
-  }
-
-
-  chat.classList.add(
-    "open"
-  );
-
-
-  setTimeout(
-    () => {
-
-      $("#chatInput")
-        ?.focus();
-
-    },
-    150
-  );
-
-}
-
-
-function closeAssistant() {
-
-  $("#chatWindow")
-    ?.classList.remove(
-      "open"
-    );
-
-}
-
-
-function sendSuggestedMessage(
-  message
-) {
-
-  const input =
-    $("#chatInput");
-
-
-  if (!input) {
-
-    return;
-
-  }
-
-
-  input.value =
-    message;
-
-
-  sendMessage();
-
-}
-
-
-function addMessage(
-  content,
-  type
-) {
-
-  const messages =
-    $("#chatMessages");
-
-
-  if (!messages) {
-
-    return;
-
-  }
-
-
-  if (
-    type ===
-    "user"
-  ) {
-
-    messages.insertAdjacentHTML(
-      "beforeend",
-      `
-        <div class="user-message">
-          ${content}
         </div>
-      `
-    );
 
-  } else {
 
-    messages.insertAdjacentHTML(
-      "beforeend",
-      `
+        <button
+          type="button"
+          onclick="closeAssistant()"
+          aria-label="Close chat"
+        >
+          ×
+        </button>
+
+
+      </div>
+
+
+      <div class="chat-suggestions">
+
+
+        <button
+          type="button"
+          onclick="
+            sendSuggestedMessage(
+              'Plan a trip to Goa'
+            )
+          "
+        >
+          Goa trip
+        </button>
+
+
+        <button
+          type="button"
+          onclick="
+            sendSuggestedMessage(
+              'Make my trip cheaper'
+            )
+          "
+        >
+          Cheaper trip
+        </button>
+
+
+        <button
+          type="button"
+          onclick="
+            sendSuggestedMessage(
+              'Suggest hidden gems'
+            )
+          "
+        >
+          Hidden gems
+        </button>
+
+
+      </div>
+
+
+      <div
+        class="chat-messages"
+        id="chatMessages"
+      >
+
+
         <div class="bot-message">
+
 
           <span class="message-avatar">
             ✦
           </span>
 
+
           <div>
-            ${content}
+
+            Hey 👋
+            I'm VYORA.
+
+            Where are we going?
+
+          </div>
+
+
+        </div>
+
+
+      </div>
+
+
+      <div class="chat-input">
+
+
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Ask VYORA..."
+          autocomplete="off"
+        >
+
+
+        <button
+          type="button"
+          onclick="sendMessage()"
+        >
+          ↑
+        </button>
+
+
+      </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         PREMIUM LOGIN / REGISTER
+    ====================================================== -->
+
+    <div
+      class="auth-backdrop"
+      id="authBackdrop"
+      aria-hidden="true"
+    >
+
+      <div
+        class="auth-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authTitle"
+      >
+
+
+        <!-- LEFT VISUAL -->
+
+        <div class="auth-visual">
+
+          <div class="auth-visual-image"></div>
+
+          <div class="auth-visual-overlay"></div>
+
+
+          <div class="auth-visual-content">
+
+
+            <div class="auth-visual-eyebrow">
+
+              <span></span>
+
+              VYORA TRAVEL INTELLIGENCE
+
+            </div>
+
+
+            <div class="auth-visual-brand">
+
+              <div class="auth-brand-mark">
+                V
+              </div>
+
+
+              <div>
+
+                <strong>
+                  VYORA
+                </strong>
+
+                <small>
+                  Travel Beyond the Ordinary.
+                </small>
+
+              </div>
+
+            </div>
+
+
+            <div class="auth-visual-main">
+
+              <span>
+                YOUR JOURNEY,
+              </span>
+
+
+              <h4>
+
+                beautifully<br>
+
+                <em>
+                  designed.
+                </em>
+
+              </h4>
+
+
+              <p>
+
+                Personalized routes, smarter budgets,
+                meaningful experiences and journeys
+                built around the way you travel.
+
+              </p>
+
+            </div>
+
+
+            <div class="auth-trust-row">
+
+
+              <div class="auth-trust-item">
+
+                <strong>
+                  ✦
+                </strong>
+
+
+                <div>
+
+                  <span>
+                    AI CURATED
+                  </span>
+
+                  <small>
+                    Travel intelligence
+                  </small>
+
+                </div>
+
+              </div>
+
+
+              <div class="auth-trust-item">
+
+                <strong>
+                  ◉
+                </strong>
+
+
+                <div>
+
+                  <span>
+                    YOUR JOURNEYS
+                  </span>
+
+                  <small>
+                    Saved to your account
+                  </small>
+
+                </div>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="auth-visual-footer">
+
+              <span>
+                TRAVEL BEYOND THE ORDINARY.
+              </span>
+
+              <div></div>
+
+              <span>
+                2026
+              </span>
+
+            </div>
+
+
           </div>
 
         </div>
-      `
-    );
 
-  }
 
+        <!-- RIGHT FORM -->
 
-  messages.scrollTop =
-    messages.scrollHeight;
+        <div class="auth-form-panel">
 
-}
 
+          <button
+            class="auth-close"
+            type="button"
+            onclick="closeAuthModal()"
+            aria-label="Close authentication"
+          >
+            ×
+          </button>
 
-function getAssistantResponse(
-  message
-) {
 
-  const text =
-    message
-      .toLowerCase()
-      .trim();
+          <div class="auth-panel-top">
 
 
-  if (
-    text.includes("goa") ||
-    text.includes("beach")
-  ) {
+            <div class="auth-panel-status">
 
-    return `
+              <span class="auth-status-dot"></span>
 
-      Goa is a strong match for
-      beaches, food, coastal experiences
-      and nightlife.
+              VYORA ACCOUNT
 
-      <br><br>
+            </div>
 
-      Tell me your dates and budget,
-      and VYORA can shape the route.
 
-      <br><br>
+            <div class="auth-panel-mini">
+              SECURE ACCESS
+            </div>
 
-      <small>
-        Prototype travel intelligence.
-      </small>
 
-    `;
+          </div>
 
-  }
 
+          <div class="auth-brand">
 
-  if (
-    text.includes("kerala") ||
-    text.includes("nature") ||
-    text.includes("backwater")
-  ) {
 
-    return `
+            <div class="auth-brand-mark">
+              V
+            </div>
 
-      Kerala can be built around
-      backwaters, hills, local food,
-      nature and slower travel.
 
-      <br><br>
+            <div>
 
-      VYORA can balance Kochi,
-      Munnar and Alleppey-style
-      experiences around your dates.
+              <strong>
+                VYORA
+              </strong>
 
-      <br><br>
+              <span>
+                Travel Beyond the Ordinary.
+              </span>
 
-      <small>
-        Prototype travel intelligence.
-      </small>
+            </div>
 
-    `;
 
-  }
+          </div>
 
 
-  if (
-    text.includes("rajasthan") ||
-    text.includes("history") ||
-    text.includes("culture")
-  ) {
+          <span
+            class="section-label"
+            id="authModeLabel"
+          >
+            WELCOME BACK
+          </span>
 
-    return `
 
-      Rajasthan can be shaped around
-      forts, palaces, markets,
-      food and heritage experiences.
+          <h3 id="authTitle">
+            Sign in to VYORA.
+          </h3>
 
-      <br><br>
 
-      <small>
-        Prototype travel intelligence.
-      </small>
+          <p
+            class="auth-subtitle"
+            id="authSubtitle"
+          >
+            Your next journey starts here.
+          </p>
 
-    `;
 
-  }
+          <!-- LOGIN -->
 
+          <form
+            id="loginForm"
+            class="auth-form"
+            onsubmit="handleLogin(event)"
+          >
 
-  if (
-    text.includes("cheap") ||
-    text.includes("cheaper") ||
-    text.includes("budget")
-  ) {
 
-    return `
+            <div class="auth-field">
 
-      VYORA would look at the complete
-      journey instead of cutting one thing.
 
-      Accommodation, route distance,
-      activities and food can all be
-      balanced around your budget.
+              <label for="loginEmail">
+                Email address
+              </label>
 
-      <br><br>
 
-      <small>
-        Prototype optimization logic.
-      </small>
+              <div class="auth-input-wrap">
 
-    `;
+                <span>
+                  @
+                </span>
 
-  }
 
+                <input
+                  id="loginEmail"
+                  type="email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                  required
+                >
 
-  if (
-    text.includes("hidden") ||
-    text.includes("gem")
-  ) {
+              </div>
 
-    return `
 
-      Go beyond the obvious.
+            </div>
 
-      VYORA can prioritize quieter
-      neighbourhoods, local markets,
-      food spots and alternative experiences.
 
-      <br><br>
+            <div class="auth-field">
 
-      <small>
-        Prototype discovery logic.
-      </small>
 
-    `;
+              <div class="auth-label-row">
 
-  }
+                <label for="loginPassword">
+                  Password
+                </label>
 
 
-  return `
+                <span>
+                  Protected by VYORA
+                </span>
 
-    I'm currently in VYORA prototype mode.
+              </div>
 
-    Try asking me about Goa, Kerala,
-    Rajasthan, budgets or hidden gems.
 
-  `;
+              <div class="auth-input-wrap">
 
-}
+                <span>
+                  •
+                </span>
 
 
-function sendMessage() {
+                <input
+                  id="loginPassword"
+                  type="password"
+                  placeholder="Enter your password"
+                  autocomplete="current-password"
+                  required
+                >
 
-  const input =
-    $("#chatInput");
+              </div>
 
-  const messages =
-    $("#chatMessages");
 
+            </div>
 
-  if (
-    !input ||
-    !messages
-  ) {
 
-    return;
+            <button
+              class="primary-btn auth-submit"
+              id="loginSubmit"
+              type="submit"
+            >
 
-  }
+              <span>
+                Sign in securely
+              </span>
 
+              <strong>
+                →
+              </strong>
 
-  const message =
-    input.value.trim();
+            </button>
 
 
-  if (!message) {
+          </form>
 
-    return;
 
-  }
+          <!-- REGISTER -->
 
+          <form
+            id="registerForm"
+            class="auth-form"
+            onsubmit="handleRegister(event)"
+            hidden
+          >
 
-  addMessage(
-    escapeHTML(message),
-    "user"
-  );
 
+            <div class="auth-field">
 
-  input.value =
-    "";
 
+              <label for="registerUsername">
+                Username
+              </label>
 
-  const typingId =
-    `typing-${Date.now()}`;
 
+              <div class="auth-input-wrap">
 
-  messages.insertAdjacentHTML(
-    "beforeend",
-    `
+                <span>
+                  ◉
+                </span>
 
-      <div
-        class="bot-message"
-        id="${typingId}"
-      >
 
-        <span class="message-avatar">
-          ✦
-        </span>
+                <input
+                  id="registerUsername"
+                  type="text"
+                  placeholder="Choose a username"
+                  minlength="3"
+                  autocomplete="username"
+                  required
+                >
 
-        <div class="dots">
+              </div>
 
-          <span></span>
-          <span></span>
-          <span></span>
+
+            </div>
+
+
+            <div class="auth-field">
+
+
+              <label for="registerEmail">
+                Email address
+              </label>
+
+
+              <div class="auth-input-wrap">
+
+                <span>
+                  @
+                </span>
+
+
+                <input
+                  id="registerEmail"
+                  type="email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                  required
+                >
+
+              </div>
+
+
+            </div>
+
+
+            <div class="auth-field">
+
+
+              <div class="auth-label-row">
+
+                <label for="registerPhone">
+                  Phone
+                </label>
+
+
+                <span>
+                  Optional
+                </span>
+
+              </div>
+
+
+              <div class="auth-input-wrap">
+
+                <span>
+                  +
+                </span>
+
+
+                <input
+                  id="registerPhone"
+                  type="tel"
+                  placeholder="9876543210"
+                  autocomplete="tel"
+                  maxlength="10"
+                >
+
+              </div>
+
+
+            </div>
+
+
+            <div class="auth-field">
+
+
+              <label for="registerPassword">
+                Password
+              </label>
+
+
+              <div class="auth-input-wrap">
+
+                <span>
+                  •
+                </span>
+
+
+                <input
+                  id="registerPassword"
+                  type="password"
+                  placeholder="Minimum 8 characters"
+                  minlength="8"
+                  autocomplete="new-password"
+                  required
+                >
+
+              </div>
+
+
+            </div>
+
+
+            <button
+              class="primary-btn auth-submit"
+              id="registerSubmit"
+              type="submit"
+            >
+
+              <span>
+                Create my VYORA account
+              </span>
+
+              <strong>
+                →
+              </strong>
+
+            </button>
+
+
+          </form>
+
+
+          <div
+            class="auth-message"
+            id="authMessage"
+            role="alert"
+            aria-live="polite"
+          ></div>
+
+
+          <div
+            class="auth-switch"
+            id="authSwitch"
+          >
+
+            <span>
+              Don't have an account?
+            </span>
+
+
+            <button
+              type="button"
+              onclick="switchAuthMode('register')"
+            >
+              Create account
+            </button>
+
+          </div>
+
+
+          <div class="auth-security">
+
+            <span>
+              ✓
+            </span>
+
+
+            <p>
+
+              Your account is used to keep your
+              saved journeys connected across VYORA.
+
+            </p>
+
+          </div>
+
+
+          <div class="auth-panel-footer">
+
+            <span>
+              VYORA
+            </span>
+
+            <div></div>
+
+            <span>
+              TRAVEL INTELLIGENCE
+            </span>
+
+          </div>
+
 
         </div>
 
       </div>
 
-    `
-  );
+    </div>
 
 
-  messages.scrollTop =
-    messages.scrollHeight;
+    <!-- =====================================================
+         GENERAL VYORA MODAL
+    ====================================================== -->
 
+    <div
+      class="modal-backdrop"
+      id="modalBackdrop"
+    >
 
-  setTimeout(
-    () => {
 
-      document
-        .getElementById(
-          typingId
-        )
-        ?.remove();
+      <div class="modal-card">
 
-
-      addMessage(
-        getAssistantResponse(
-          message
-        ),
-        "bot"
-      );
-
-    },
-    800
-  );
-
-}
-
-
-/* =========================================================
-   GENERAL MODAL
-========================================================= */
-
-function openModal(
-  title,
-  text
-) {
-
-  const backdrop =
-    $("#modalBackdrop");
-
-
-  if (!backdrop) {
-
-    return;
-
-  }
-
-
-  if ($("#modalTitle")) {
-
-    $("#modalTitle")
-      .textContent =
-      title;
-
-  }
-
-
-  if ($("#modalText")) {
-
-    $("#modalText")
-      .textContent =
-      text;
-
-  }
-
-
-  backdrop.classList.add(
-    "open"
-  );
-
-}
-
-
-function closeModal() {
-
-  $("#modalBackdrop")
-    ?.classList.remove(
-      "open"
-    );
-
-}
-
-
-function showPrototypeNotice() {
-
-  openModal(
-    "VYORA prototype",
-    "This section demonstrates the VYORA product experience. Live availability, booking, maps, pricing and external AI services can be integrated through the backend."
-  );
-
-}
-
-
-/* =========================================================
-   TOAST
-========================================================= */
-
-function showToast(
-  title,
-  text
-) {
-
-  const toast =
-    $("#toast");
-
-
-  if (!toast) {
-
-    return;
-
-  }
-
-
-  const titleElement =
-    $("#toastTitle");
-
-  const textElement =
-    $("#toastText");
-
-
-  if (titleElement) {
-
-    titleElement
-      .textContent =
-      title;
-
-  }
-
-
-  if (textElement) {
-
-    textElement
-      .textContent =
-      text;
-
-  }
-
-
-  toast.classList.add(
-    "show"
-  );
-
-
-  clearTimeout(
-    toastTimer
-  );
-
-
-  toastTimer =
-    setTimeout(
-      () => {
-
-        toast.classList.remove(
-          "show"
-        );
-
-      },
-      3500
-    );
-
-}
-
-
-/* =========================================================
-   AUTH MODAL
-========================================================= */
-
-function openAuthModal(
-  mode = "login"
-) {
-
-  const backdrop =
-    $("#authBackdrop");
-
-
-  if (!backdrop) {
-
-    return;
-
-  }
-
-
-  backdrop.classList.add(
-    "open"
-  );
-
-
-  backdrop.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-
-  document.body.classList.add(
-    "no-scroll"
-  );
-
-
-  switchAuthMode(
-    mode
-  );
-
-
-  setTimeout(
-    () => {
-
-      if (
-        mode ===
-        "register"
-      ) {
-
-        $("#registerUsername")
-          ?.focus();
-
-      } else {
-
-        $("#loginEmail")
-          ?.focus();
-
-      }
-
-    },
-    180
-  );
-
-}
-
-
-function closeAuthModal() {
-
-  const backdrop =
-    $("#authBackdrop");
-
-
-  if (!backdrop) {
-
-    return;
-
-  }
-
-
-  backdrop.classList.remove(
-    "open"
-  );
-
-
-  backdrop.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-
-  document.body.classList.remove(
-    "no-scroll"
-  );
-
-
-  setAuthMessage(
-    ""
-  );
-
-}
-
-
-function switchAuthMode(
-  mode
-) {
-
-  const loginForm =
-    $("#loginForm");
-
-  const registerForm =
-    $("#registerForm");
-
-  const label =
-    $("#authModeLabel");
-
-  const title =
-    $("#authTitle");
-
-  const subtitle =
-    $("#authSubtitle");
-
-  const switchBox =
-    $("#authSwitch");
-
-
-  if (
-    !loginForm ||
-    !registerForm
-  ) {
-
-    return;
-
-  }
-
-
-  if (
-    mode ===
-    "register"
-  ) {
-
-    loginForm.hidden =
-      true;
-
-    registerForm.hidden =
-      false;
-
-
-    if (label) {
-
-      label.textContent =
-        "START YOUR JOURNEY";
-
-    }
-
-
-    if (title) {
-
-      title.textContent =
-        "Create your VYORA.";
-
-    }
-
-
-    if (subtitle) {
-
-      subtitle.textContent =
-        "One account. Your journeys, your way.";
-
-    }
-
-
-    if (switchBox) {
-
-      switchBox.innerHTML = `
-
-        <span>
-          Already have an account?
-        </span>
 
         <button
+          class="modal-close"
           type="button"
-          onclick="switchAuthMode('login')"
+          onclick="closeModal()"
         >
-          Sign in
+          ×
         </button>
 
-      `;
 
-    }
-
-  } else {
-
-    loginForm.hidden =
-      false;
-
-    registerForm.hidden =
-      true;
+        <div class="modal-icon">
+          ✦
+        </div>
 
 
-    if (label) {
-
-      label.textContent =
-        "WELCOME BACK";
-
-    }
-
-
-    if (title) {
-
-      title.textContent =
-        "Sign in to VYORA.";
-
-    }
-
-
-    if (subtitle) {
-
-      subtitle.textContent =
-        "Your next journey starts here.";
-
-    }
-
-
-    if (switchBox) {
-
-      switchBox.innerHTML = `
-
-        <span>
-          Don't have an account?
+        <span class="section-label">
+          VYORA
         </span>
+
+
+        <h3 id="modalTitle">
+          Coming next
+        </h3>
+
+
+        <p id="modalText">
+          This feature is part of the VYORA product roadmap.
+        </p>
+
 
         <button
+          class="primary-btn"
           type="button"
-          onclick="switchAuthMode('register')"
+          onclick="closeModal()"
         >
-          Create account
+          Continue exploring
         </button>
 
-      `;
 
-    }
-
-  }
+      </div>
 
 
-  setAuthMessage(
-    ""
-  );
-
-}
+    </div>
 
 
-function setAuthMessage(
-  message,
-  type = ""
-) {
-
-  const element =
-    $("#authMessage");
+  </div>
 
 
-  if (!element) {
-
-    return;
-
-  }
+  <script src="./script.js"></script>
 
 
-  element.textContent =
-    message;
+  <!-- =====================================================
+       VYORA DATE / BUDGET BRIDGE
+  ====================================================== -->
 
+  <script>
 
-  element.className =
-    `auth-message ${type}`;
+    function vyoraDateValue(id) {
 
-}
+      const element =
+        document.getElementById(id);
 
-
-/* =========================================================
-   AUTH — LOGIN
-========================================================= */
-
-async function handleLogin(
-  event
-) {
-
-  event.preventDefault();
-
-
-  const email =
-    $("#loginEmail")
-      ?.value
-      .trim()
-      .toLowerCase();
-
-  const password =
-    $("#loginPassword")
-      ?.value;
-
-  const button =
-    $("#loginSubmit");
-
-
-  if (
-    !email ||
-    !password
-  ) {
-
-    setAuthMessage(
-      "Enter your email and password.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.innerHTML = `
-      <span>
-        Signing in...
-      </span>
-      <strong>•</strong>
-    `;
-
-  }
-
-
-  setAuthMessage(
-    "Connecting to VYORA...",
-    "loading"
-  );
-
-
-  try {
-
-    const response =
-      await fetch(
-        `${VYORA_API}/login`,
-        {
-
-          method:
-            "POST",
-
-          credentials:
-            "include",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              email,
-              password
-            })
-
-        }
-      );
-
-
-    let data = {};
-
-
-    try {
-
-      data =
-        await response.json();
-
-    } catch {
-
-      data = {};
+      return element
+        ? element.value
+        : "";
 
     }
 
 
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        data.error ||
-        "Login failed."
-      );
-
-    }
-
-
-    const user =
-      data.user || {
-
-        username:
-          data.username ||
-          email.split("@")[0],
-
-        email:
-          data.email ||
-          email
-
-      };
-
-
-    currentUser =
-      user;
-
-
-    localStorage.setItem(
-      "vyoraUser",
-      JSON.stringify(
-        user
-      )
-    );
-
-
-    updateAuthUI();
-
-
-    closeAuthModal();
-
-
-    showToast(
-      "Welcome back",
-      `Good to see you, ${
-        user.username ||
-        "traveller"
-      }.`
-    );
-
-
-    await refreshMyJourneys(
-      true
-    );
-
-
-    console.log(
-      "VYORA login successful:",
-      data
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA login error:",
-      error
-    );
-
-
-    setAuthMessage(
-      error.message ||
-      "Unable to connect to VYORA backend.",
-      "error"
-    );
-
-
-  } finally {
-
-    if (button) {
-
-      button.disabled =
-        false;
-
-      button.innerHTML = `
-
-        <span>
-          Sign in securely
-        </span>
-
-        <strong>
-          →
-        </strong>
-
-      `;
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH — REGISTER
-========================================================= */
-
-async function handleRegister(
-  event
-) {
-
-  event.preventDefault();
-
-
-  const username =
-    $("#registerUsername")
-      ?.value
-      .trim();
-
-  const email =
-    $("#registerEmail")
-      ?.value
-      .trim()
-      .toLowerCase();
-
-  const phone =
-    $("#registerPhone")
-      ?.value
-      .trim();
-
-  const password =
-    $("#registerPassword")
-      ?.value;
-
-  const button =
-    $("#registerSubmit");
-
-
-  if (
-    !username ||
-    !email ||
-    !password
-  ) {
-
-    setAuthMessage(
-      "Complete all required fields.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  if (
-    username.length <
-    3
-  ) {
-
-    setAuthMessage(
-      "Username must contain at least 3 characters.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  if (
-    password.length <
-    8
-  ) {
-
-    setAuthMessage(
-      "Password must contain at least 8 characters.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  if (
-    phone &&
-    !/^\d{10}$/.test(
-      phone
-    )
-  ) {
-
-    setAuthMessage(
-      "Enter a valid 10-digit phone number.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.innerHTML = `
-      <span>
-        Creating account...
-      </span>
-      <strong>•</strong>
-    `;
-
-  }
-
-
-  setAuthMessage(
-    "Creating your VYORA account...",
-    "loading"
-  );
-
-
-  try {
-
-    const response =
-      await fetch(
-        `${VYORA_API}/register`,
-        {
-
-          method:
-            "POST",
-
-          credentials:
-            "include",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              username,
-
-              email,
-
-              phone:
-                phone ||
-                null,
-
-              password
-
-            })
-
-        }
-      );
-
-
-    let data = {};
-
-
-    try {
-
-      data =
-        await response.json();
-
-    } catch {
-
-      data = {};
-
-    }
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data.message ||
-        data.error ||
-        "Registration failed."
-      );
-
-    }
-
-
-    console.log(
-      "VYORA registration successful:",
-      data
-    );
-
-
-    if (
-      data.user
+    function vyoraCalculateDays(
+      startValue,
+      endValue
     ) {
-
-      currentUser =
-        data.user;
-
-
-      localStorage.setItem(
-        "vyoraUser",
-        JSON.stringify(
-          data.user
-        )
-      );
-
-
-      updateAuthUI();
-
-
-      $("#registerForm")
-        ?.reset();
-
-
-      closeAuthModal();
-
-
-      showToast(
-        "Account created",
-        `Welcome to VYORA, ${
-          data.user.username ||
-          username
-        }.`
-      );
-
-
-      await refreshMyJourneys(
-        true
-      );
-
-
-      return;
-
-    }
-
-
-    $("#registerForm")
-      ?.reset();
-
-
-    switchAuthMode(
-      "login"
-    );
-
-
-    const loginEmail =
-      $("#loginEmail");
-
-
-    if (loginEmail) {
-
-      loginEmail.value =
-        email;
-
-    }
-
-
-    setAuthMessage(
-      "Account created successfully. Sign in to continue.",
-      "success"
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA registration error:",
-      error
-    );
-
-
-    setAuthMessage(
-      error.message ||
-      "Unable to create your VYORA account.",
-      "error"
-    );
-
-
-  } finally {
-
-    if (button) {
-
-      button.disabled =
-        false;
-
-      button.innerHTML = `
-
-        <span>
-          Create my VYORA account
-        </span>
-
-        <strong>
-          →
-        </strong>
-
-      `;
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH — SESSION
-========================================================= */
-
-function getLoggedInUser() {
-
-  const saved =
-    localStorage.getItem(
-      "vyoraUser"
-    );
-
-
-  if (!saved) {
-
-    return null;
-
-  }
-
-
-  try {
-
-    const user =
-      JSON.parse(
-        saved
-      );
-
-
-    if (
-      !user ||
-      typeof user !==
-        "object"
-    ) {
-
-      throw new Error(
-        "Invalid user session"
-      );
-
-    }
-
-
-    return user;
-
-
-  } catch (error) {
-
-    console.error(
-      "VYORA session error:",
-      error
-    );
-
-
-    currentUser =
-      null;
-
-
-    localStorage.removeItem(
-      "vyoraUser"
-    );
-
-
-    return null;
-
-  }
-
-}
-
-
-/* =========================================================
-   VERIFY REAL BACKEND SESSION
-========================================================= */
-
-async function syncAuthSession() {
-
-  try {
-
-    const response =
-      await fetch(
-        `${VYORA_API}/me`,
-        {
-
-          method:
-            "GET",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store"
-
-        }
-      );
-
-
-    if (!response.ok) {
-
-      /*
-        Only remove the local user when
-        the backend explicitly says the
-        session is invalid.
-      */
 
       if (
-        response.status ===
-        401
+        !startValue ||
+        !endValue
       ) {
-
-        currentUser =
-          null;
-
-        localStorage.removeItem(
-          "vyoraUser"
-        );
-
-        updateAuthUI();
-
+        return 0;
       }
 
-      return null;
 
-    }
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      data.user
-    ) {
-
-      currentUser =
-        data.user;
-
-
-      localStorage.setItem(
-        "vyoraUser",
-        JSON.stringify(
-          data.user
-        )
-      );
-
-
-      updateAuthUI();
-
-
-      return data.user;
-
-    }
-
-
-    return null;
-
-
-  } catch (error) {
-
-    console.warn(
-      "VYORA session check failed:",
-      error.message
-    );
-
-
-    /*
-      Keep the locally stored session when
-      the backend is temporarily unreachable.
-      This prevents a network issue from
-      immediately destroying the UI state.
-    */
-
-    return currentUser;
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH UI
-========================================================= */
-
-function updateAuthUI() {
-
-  const isLoggedIn =
-    !!currentUser;
-
-
-  /* -------------------------------------------------------
-     Existing Login / Register buttons
-  ------------------------------------------------------- */
-
-  document
-    .querySelectorAll(
-      ".login-btn, .nav-cta"
-    )
-    .forEach(
-      (button) => {
-
-        button.style.display =
-          isLoggedIn
-            ? "none"
-            : "";
-
-      }
-    );
-
-
-  /* -------------------------------------------------------
-     User container
-  ------------------------------------------------------- */
-
-  let navUser =
-    document.getElementById(
-      "navUser"
-    );
-
-  let navUsername =
-    document.getElementById(
-      "navUsername"
-    );
-
-
-  /* -------------------------------------------------------
-     Find a suitable navbar container
-  ------------------------------------------------------- */
-
-  const navContainer =
-    document.querySelector(
-      ".nav-actions"
-    ) ||
-    document.querySelector(
-      ".nav-right"
-    ) ||
-    document.querySelector(
-      ".navbar"
-    );
-
-
-  /* -------------------------------------------------------
-     Create user area if it doesn't exist
-  ------------------------------------------------------- */
-
-  if (
-    !navUser &&
-    navContainer
-  ) {
-
-    navUser =
-      document.createElement(
-        "div"
-      );
-
-    navUser.id =
-      "navUser";
-
-    navUser.style.display =
-      "none";
-
-    navUser.style.alignItems =
-      "center";
-
-    navUser.style.gap =
-      "10px";
-
-
-    navUsername =
-      document.createElement(
-        "span"
-      );
-
-    navUsername.id =
-      "navUsername";
-
-
-    navUser.appendChild(
-      navUsername
-    );
-
-
-    navContainer.appendChild(
-      navUser
-    );
-
-  }
-
-
-  /* -------------------------------------------------------
-     Create Logout button if missing
-  ------------------------------------------------------- */
-
-  if (
-    navUser &&
-    !navUser.querySelector(
-      ".logout-btn"
-    )
-  ) {
-
-    const logoutButton =
-      document.createElement(
-        "button"
-      );
-
-
-    logoutButton.type =
-      "button";
-
-
-    logoutButton.className =
-      "logout-btn";
-
-
-    logoutButton.textContent =
-      "Logout";
-
-
-    logoutButton.style.cursor =
-      "pointer";
-
-
-    logoutButton.addEventListener(
-      "click",
-      handleVyoraLogout
-    );
-
-
-    navUser.appendChild(
-      logoutButton
-    );
-
-  }
-
-
-  /* -------------------------------------------------------
-     Update user visibility
-  ------------------------------------------------------- */
-
-  if (navUser) {
-
-    navUser.style.display =
-      isLoggedIn
-        ? "flex"
-        : "none";
-
-  }
-
-
-  /* -------------------------------------------------------
-     Update username
-  ------------------------------------------------------- */
-
-  if (navUsername) {
-
-    navUsername.textContent =
-      currentUser?.username ||
-      currentUser?.name ||
-      currentUser?.email ||
-      "Traveler";
-
-  }
-
-
-  /* -------------------------------------------------------
-     My Journeys visibility
-  ------------------------------------------------------- */
-
-  document
-    .querySelectorAll(
-      "#myJourneysLink, .my-journeys-link"
-    )
-    .forEach(
-      (link) => {
-
-        link.style.display =
-          isLoggedIn
-            ? ""
-            : "none";
-
-      }
-    );
-
-}
-
-
-async function handleVyoraLogout() {
-
-  try {
-
-    await fetch(
-      `${VYORA_API}/logout`,
-      {
-        method:
-          "POST",
-        credentials:
-          "include"
-      }
-    );
-
-  } catch (error) {
-
-    console.warn(
-      "VYORA logout request failed:",
-      error
-    );
-
-  }
-
-
-  currentUser =
-    null;
-
-
-  localStorage.removeItem(
-    "vyoraUser"
-  );
-
-
-  currentJourney = {
-
-    tripId: null,
-
-    destination: "",
-
-    startDate: "",
-
-    endDate: "",
-
-    days: 0,
-
-    budget: 0,
-
-    interests: []
-
-  };
-
-
-  updateAuthUI();
-
-
-  if (
-    typeof refreshMyJourneys ===
-    "function"
-  ) {
-
-    refreshMyJourneys(
-      true
-    );
-
-  }
-
-
-  if (
-    typeof showToast ===
-    "function"
-  ) {
-
-    showToast(
-      "Logged out successfully.",
-      "Your VYORA session has been closed."
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   MODALS
-========================================================= */
-
-function setupModals() {
-
-  $("#authBackdrop")
-    ?.addEventListener(
-      "click",
-      (event) => {
-
-        if (
-          event.target ===
-          $("#authBackdrop")
-        ) {
-
-          closeAuthModal();
-
-        }
-
-      }
-    );
-
-
-  $("#modalBackdrop")
-    ?.addEventListener(
-      "click",
-      (event) => {
-
-        if (
-          event.target ===
-          $("#modalBackdrop")
-        ) {
-
-          closeModal();
-
-        }
-
-      }
-    );
-
-
-  $("#myJourneysGrid")
-    ?.addEventListener(
-      "click",
-      async (event) => {
-
-        const button =
-          event.target.closest(
-            "button[data-action]"
-          );
-
-
-        if (!button) {
-
-          return;
-
-        }
-
-
-        const action =
-          button.dataset.action;
-
-        const tripId =
-          button.dataset.tripId;
-
-
-       if (
-  action ===
-  "open"
-) {
-
-  await openSavedTrip(
-    tripId
-  );
-
-}
-
-
-if (
-  action ===
-  "edit"
-) {
-
-  await editSavedTrip(
-    tripId
-  );
-
-}
-
-
-if (
-  action ===
-  "delete"
-) {
-
-  await handleJourneyDelete(
-    tripId
-  );
-
-}
-
-      }
-    );
-
-
-  document.addEventListener(
-    "keydown",
-    (event) => {
-
-      if (
-        event.key ===
-        "Escape"
-      ) {
-
-        closeAuthModal();
-
-        closeModal();
-
-        closeAssistant();
-
-        closeMobileMenu();
-
-      }
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   FORM UX
-========================================================= */
-
-function setupFormUX() {
-
-  const numericInputs = [
-
-    "#budgetInput",
-
-    "#plannerBudget"
-
-  ];
-
-
-  numericInputs.forEach(
-    (selector) => {
-
-      $(selector)
-        ?.addEventListener(
-          "input",
-          (event) => {
-
-            if (
-              Number(
-                event.target.value
-              ) < 0
-            ) {
-
-              event.target.value =
-                "";
-
-            }
-
-          }
-        );
-
-    }
-  );
-
-
-  $("#registerPhone")
-    ?.addEventListener(
-      "input",
-      (event) => {
-
-        event.target.value =
-          event.target.value
-            .replace(
-              /\D/g,
-              ""
-            )
-            .slice(
-              0,
-              10
-            );
-
-      }
-    );
-
-}
-
-
-/* =========================================================
-   KERALA IMAGE FALLBACK
-========================================================= */
-
-function setupImageFallback() {
-
-  const kerala =
-    $(".bg-kerala");
-
-
-  if (!kerala) {
-
-    return;
-
-  }
-
-
-  const primary =
-    "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1400&q=90";
-
-
-  const fallback =
-    "https://wanderon-images.gumlet.io/blogs/new/2024/03/kerala-backwaters.jpg";
-
-
-  const image =
-    new Image();
-
-
-  image.onload =
-    () => {
-
-      kerala.style.backgroundImage = `
-
-        linear-gradient(
-          transparent 30%,
-          rgba(0,0,0,.78)
-        ),
-
-        url("${primary}")
-
-      `;
-
-    };
-
-
-  image.onerror =
-    () => {
-
-      kerala.style.backgroundImage = `
-
-        linear-gradient(
-          transparent,
-          rgba(0,0,0,.76)
-        ),
-
-        url("${fallback}")
-
-      `;
-
-    };
-
-
-  image.src =
-    primary;
-
-}
-
-
-/* =========================================================
-   RIPPLE
-========================================================= */
-
-function setupRipple() {
-
-  document.addEventListener(
-    "click",
-    (event) => {
-
-      const button =
-        event.target.closest(
-          "button"
+      const start =
+        new Date(
+          startValue + "T00:00:00"
         );
 
 
-      if (!button) {
-
-        return;
-
-      }
-
-
-      const rect =
-        button.getBoundingClientRect();
-
-
-      const ripple =
-        document.createElement(
-          "span"
+      const end =
+        new Date(
+          endValue + "T00:00:00"
         );
 
 
-      ripple.className =
-        "vyora-ripple";
-
-
-      ripple.style.left =
-        `${event.clientX -
-          rect.left}px`;
-
-
-      ripple.style.top =
-        `${event.clientY -
-          rect.top}px`;
-
-
-      button.appendChild(
-        ripple
-      );
-
-
-      setTimeout(
-        () => {
-
-          ripple.remove();
-
-        },
-        500
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   AUTOCOMPLETE — DESTINATIONS
-========================================================= */
-
-function setupDestinationSearch() {
-
-  const inputs = [
-
-    $("#destinationInput"),
-
-    $("#plannerDestination")
-
-  ];
-
-
-  inputs.forEach(
-    (input) => {
-
-      if (!input) {
-
-        return;
-
-      }
-
-
-      input.addEventListener(
-        "input",
-        () => {
-
-          const value =
-            input.value
-              .trim()
-              .toLowerCase();
-
-
-          if (!value) {
-
-            input.removeAttribute(
-              "data-suggestions"
-            );
-
-            return;
-
-          }
-
-
-          const matches =
-            Object.keys(
-              destinationDatabase
-            )
-            .filter(
-              (destination) =>
-                destination
-                  .toLowerCase()
-                  .includes(
-                    value
-                  )
-            )
-            .slice(
-              0,
-              4
-            );
-
-
-          if (
-            matches.length &&
-            value.length >=
-              2
-          ) {
-
-            input.setAttribute(
-              "data-suggestions",
-              matches.join(
-                " • "
-              )
-            );
-
-          } else {
-
-            input.removeAttribute(
-              "data-suggestions"
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   REVEAL ANIMATIONS
-========================================================= */
-
-function setupReveal() {
-
-  const elements =
-    document.querySelectorAll(
-      ".reveal, [data-reveal], .fade-in, .animate-on-scroll"
-    );
-
-
-  if (!elements.length) {
-
-    return;
-
-  }
-
-
-  const observer =
-    new IntersectionObserver(
-      (entries) => {
-
-        entries.forEach(
-          (entry) => {
-
-            if (
-              entry.isIntersecting
-            ) {
-
-              entry.target.classList.add(
-                "visible",
-                "revealed"
-              );
-
-
-              observer.unobserve(
-                entry.target
-              );
-
-            }
-
-          }
-        );
-
-      },
-      {
-        threshold:
-          0.1
-      }
-    );
-
-
-  elements.forEach(
-    (element) => {
-
-      observer.observe(
-        element
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   COUNTER ANIMATIONS
-========================================================= */
-
-function setupCounters() {
-
-  const counters =
-    document.querySelectorAll(
-      "[data-count], .counter, .stat-number"
-    );
-
-
-  if (!counters.length) {
-
-    return;
-
-  }
-
-
-  const animateCounter =
-    (element) => {
-
-      const targetText =
-        element.getAttribute(
-          "data-count"
-        ) ||
-        element.textContent;
-
-
-      const target =
-        parseInt(
-          targetText.replace(
-            /[^\d]/g,
-            ""
-          ),
-          10
-        );
+      const difference =
+        end.getTime() -
+        start.getTime();
 
 
       if (
-        isNaN(
-          target
-        )
+        Number.isNaN(difference) ||
+        difference < 0
       ) {
-
-        return;
-
+        return 0;
       }
+
+
+      return Math.floor(
+        difference /
+        (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    }
+
+
+    function vyoraFormatDate(
+      value
+    ) {
+
+      if (!value) {
+        return "";
+      }
+
+
+      const date =
+        new Date(
+          value + "T00:00:00"
+        );
+
+
+      return date.toLocaleDateString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }
+      );
+
+    }
+
+
+    function vyoraSyncDates() {
+
+      const start =
+        vyoraDateValue(
+          "plannerStartDate"
+        );
+
+
+      const end =
+        vyoraDateValue(
+          "plannerEndDate"
+        );
+
+
+      const days =
+        vyoraCalculateDays(
+          start,
+          end
+        );
+
+
+      const plannerDays =
+        document.getElementById(
+          "plannerDays"
+        );
 
 
       const duration =
-        1200;
+        document.getElementById(
+          "plannerDuration"
+        );
 
 
-      const startTime =
-        performance.now();
+      if (plannerDays) {
+
+        plannerDays.value =
+          days > 0
+            ? String(days)
+            : "1";
+
+      }
 
 
-      const update =
-        (currentTime) => {
+      if (duration) {
 
-          const progress =
-            Math.min(
-              (
-                currentTime -
-                startTime
-              ) /
-              duration,
-              1
-            );
+        if (!start || !end) {
 
+          duration.textContent =
+            "Choose dates";
 
-          const eased =
-            1 -
-            Math.pow(
-              1 -
-                progress,
-              3
-            );
+        } else if (days <= 0) {
 
+          duration.textContent =
+            "Check your dates";
 
-          element.textContent =
-            Math.floor(
-              target *
-              eased
-            );
+        } else {
+
+          duration.textContent =
+            `${days} day${days === 1 ? "" : "s"}`;
+
+        }
+
+      }
+
+    }
 
 
-          if (
-            progress <
-            1
-          ) {
+    function vyoraSyncQuickDates() {
 
-            requestAnimationFrame(
-              update
-            );
-
-          } else {
-
-            element.textContent =
-              target;
-
-          }
-
-        };
+      const start =
+        vyoraDateValue(
+          "quickStartDate"
+        );
 
 
-      requestAnimationFrame(
-        update
-      );
+      const end =
+        vyoraDateValue(
+          "quickEndDate"
+        );
 
-    };
+
+      const days =
+        vyoraCalculateDays(
+          start,
+          end
+        );
 
 
-  const observer =
-    new IntersectionObserver(
-      (entries, obs) => {
+      const hiddenDays =
+        document.getElementById(
+          "daysInput"
+        );
 
-        entries.forEach(
-          (entry) => {
+
+      if (hiddenDays) {
+
+        hiddenDays.value =
+          days > 0
+            ? String(days)
+            : "1";
+
+      }
+
+    }
+
+
+    function vyoraSetMinDates() {
+
+      const now =
+        new Date();
+
+
+      const today =
+        now.toISOString()
+          .split("T")[0];
+
+
+      const fields = [
+        "quickStartDate",
+        "quickEndDate",
+        "plannerStartDate",
+        "plannerEndDate"
+      ];
+
+
+      fields.forEach(id => {
+
+        const field =
+          document.getElementById(id);
+
+
+        if (field) {
+
+          field.min = today;
+
+        }
+
+      });
+
+    }
+
+
+    function vyoraConnectDateFields() {
+
+      const plannerStart =
+        document.getElementById(
+          "plannerStartDate"
+        );
+
+
+      const plannerEnd =
+        document.getElementById(
+          "plannerEndDate"
+        );
+
+
+      const quickStart =
+        document.getElementById(
+          "quickStartDate"
+        );
+
+
+      const quickEnd =
+        document.getElementById(
+          "quickEndDate"
+        );
+
+
+      if (plannerStart) {
+
+        plannerStart.addEventListener(
+          "change",
+          () => {
 
             if (
-              entry.isIntersecting
+              plannerEnd &&
+              plannerStart.value
             ) {
 
-              animateCounter(
-                entry.target
-              );
-
-
-              obs.unobserve(
-                entry.target
-              );
+              plannerEnd.min =
+                plannerStart.value;
 
             }
 
+
+            vyoraSyncDates();
+
           }
         );
 
-      },
-      {
-        threshold:
-          0.2
       }
-    );
 
 
-  counters.forEach(
-    (counter) => {
+      if (plannerEnd) {
 
-      observer.observe(
-        counter
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   TILT INTERACTION
-========================================================= */
-
-function setupTilt() {
-
-  const elements =
-    document.querySelectorAll(
-      "[data-tilt], .tilt-card, .destination-card"
-    );
-
-
-  if (!elements.length) {
-
-    return;
-
-  }
-
-
-  elements.forEach(
-    (element) => {
-
-      element.addEventListener(
-        "mousemove",
-        (event) => {
-
-          const rect =
-            element.getBoundingClientRect();
-
-
-          const x =
-            event.clientX -
-            rect.left;
-
-
-          const y =
-            event.clientY -
-            rect.top;
-
-
-          const rotateX =
-            (
-              (y / rect.height) -
-              0.5
-            ) *
-            -6;
-
-
-          const rotateY =
-            (
-              (x / rect.width) -
-              0.5
-            ) *
-            6;
-
-
-          element.style.transform =
-            `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-
-        }
-      );
-
-
-      element.addEventListener(
-        "mouseleave",
-        () => {
-
-          element.style.transform =
-            "perspective(900px) rotateX(0deg) rotateY(0deg)";
-
-        }
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   HERO PARALLAX
-========================================================= */
-
-function setupHeroParallax() {
-
-  const hero =
-    document.querySelector(
-      ".hero, .hero-section, [data-hero-parallax]"
-    );
-
-
-  if (!hero) {
-
-    return;
-
-  }
-
-
-  const updateParallax =
-    () => {
-
-      const scrollY =
-        window.scrollY;
-
-
-      const offset =
-        Math.min(
-          scrollY *
-            0.15,
-          100
+        plannerEnd.addEventListener(
+          "change",
+          vyoraSyncDates
         );
 
-
-      hero.style.transform =
-        `translateY(${offset}px)`;
-
-    };
+      }
 
 
-  window.addEventListener(
-    "scroll",
-    updateParallax,
-    {
-      passive: true
-    }
-  );
+      if (quickStart) {
 
-}
+        quickStart.addEventListener(
+          "change",
+          () => {
 
+            if (
+              quickEnd &&
+              quickStart.value
+            ) {
 
-/* =========================================================
-   MAGNETIC INTERACTION
-========================================================= */
+              quickEnd.min =
+                quickStart.value;
 
-function setupMagnetic() {
-
-  const elements =
-    document.querySelectorAll(
-      "[data-magnetic], .magnetic"
-    );
+            }
 
 
-  if (!elements.length) {
+            vyoraSyncQuickDates();
 
-    return;
+          }
+        );
 
-  }
-
-
-  elements.forEach(
-    (element) => {
-
-      const strength =
-        Number(
-          element.dataset
-            .magneticStrength
-        ) ||
-        12;
+      }
 
 
-      element.addEventListener(
-        "mousemove",
-        (event) => {
+      if (quickEnd) {
 
-          const rect =
-            element.getBoundingClientRect();
+        quickEnd.addEventListener(
+          "change",
+          vyoraSyncQuickDates
+        );
 
-
-          const x =
-            event.clientX -
-            rect.left;
-
-
-          const y =
-            event.clientY -
-            rect.top;
-
-
-          const moveX =
-            (
-              (x / rect.width) -
-              0.5
-            ) *
-            strength;
-
-
-          const moveY =
-            (
-              (y / rect.height) -
-              0.5
-            ) *
-            strength;
-
-
-          element.style.transform =
-            `translate3d(${moveX}px, ${moveY}px, 0)`;
-
-        }
-      );
-
-
-      element.addEventListener(
-        "mouseleave",
-        () => {
-
-          element.style.transform =
-            "";
-
-        }
-      );
+      }
 
     }
-  );
-
-}
 
 
-/* =========================================================
-   CHAT INITIALIZATION
-========================================================= */
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
 
-function setupChat() {
+        vyoraSetMinDates();
 
-  const form =
-    $("#chatForm");
+        vyoraConnectDateFields();
 
-  const input =
-    $("#chatInput");
+        vyoraSyncDates();
 
-  const sendButton =
-    $("#chatSend");
-
-
-  if (form) {
-
-    form.addEventListener(
-      "submit",
-      (event) => {
-
-        event.preventDefault();
-
-        sendMessage();
+        vyoraSyncQuickDates();
 
       }
     );
 
-  } else if (
-    sendButton
-  ) {
-
-    sendButton.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-
-        sendMessage();
-
-      }
-    );
-
-  }
+  </script>
 
 
-  if (input) {
-
-    input.addEventListener(
-      "keydown",
-      (event) => {
-
-        if (
-          event.key ===
-            "Enter" &&
-          !event.shiftKey
-        ) {
-
-          event.preventDefault();
-
-          sendMessage();
-
-        }
-
-      }
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   INITIALIZATION
-========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    /*
-      -------------------------------------------------------
-      Restore the locally persisted user immediately.
-      This allows the interface to render the correct
-      authentication state while backend verification
-      happens below.
-      -------------------------------------------------------
-    */
-
-    currentUser =
-      getLoggedInUser();
-
-
-    /*
-      -------------------------------------------------------
-      Initialize visual systems
-      -------------------------------------------------------
-    */
-
-    setupReveal();
-
-    setupCounters();
-
-    setupTilt();
-
-    setupHeroParallax();
-
-    setupMagnetic();
-
-    setupChat();
-
-    setupModals();
-
-    setupFormUX();
-
-    setupRipple();
-
-    setupDateInputs();
-
-    setupDestinationSearch();
-
-    setupImageFallback();
-
-
-    /*
-      -------------------------------------------------------
-      Initialize navigation and existing journey state
-      -------------------------------------------------------
-    */
-
-    updateActiveNav();
-
-    updateAuthUI();
-
-    loadSavedTrip();
-
-    updateJourneyHeader();
-
-    resetBudgetUI();
-
-
-    /*
-      -------------------------------------------------------
-      Verify the real backend session.
-      -------------------------------------------------------
-    */
-
-    const user =
-      await syncAuthSession();
-
-
-    /*
-      -------------------------------------------------------
-      Update UI again after backend verification.
-      -------------------------------------------------------
-    */
-
-    if (user) {
-
-      currentUser =
-        user;
-
-      updateAuthUI();
-
-
-      await refreshMyJourneys(
-        true
-      );
-
-    } else {
-
-      currentUser =
-        getLoggedInUser();
-
-      updateAuthUI();
-
-    }
-
-  }
-);
+</body>
+</html>
